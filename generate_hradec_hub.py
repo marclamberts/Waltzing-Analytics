@@ -113,6 +113,14 @@ def add_percentiles(df, cols):
             df[f"{col}_pct"] = df.groupby("position")[col].rank(pct=True).round(3)
     return df
 
+def add_zscores(df, cols):
+    for col in cols:
+        if col in df.columns:
+            grp = df.groupby("position")[col]
+            std = grp.transform("std").replace(0, np.nan)
+            df[f"{col}_z"] = ((df[col] - grp.transform("mean")) / std).round(3)
+    return df
+
 def recruitment_score(row):
     metrics = POSITION_METRICS.get(row["position"], [])
     vals = [row.get(f"{m}_pct") for m in metrics if pd.notna(row.get(f"{m}_pct"))]
@@ -126,6 +134,32 @@ rec_df     = rec_df.merge(get_player_info(REC_ITERATION), on="playerId", how="le
 rec_df     = add_percentiles(rec_df, RADAR_COLS)
 rec_df["recruitment_score"]     = rec_df.apply(recruitment_score, axis=1)
 rec_df["recruitment_score_pct"] = rec_df.groupby("position")["recruitment_score"].rank(pct=True).round(3)
+rec_df = add_zscores(rec_df, RADAR_COLS)
+
+Z_THRESHOLD = 1.5
+
+def classify_anomaly(row):
+    elite, poor = [], []
+    for i, col in enumerate(RADAR_COLS):
+        z = row.get(f"{col}_z")
+        if z is None or (isinstance(z, float) and np.isnan(z)):
+            continue
+        label = RADAR_LABELS[i]
+        if z > Z_THRESHOLD:
+            elite.append(label)
+        elif z < -Z_THRESHOLD:
+            poor.append(label)
+    if not elite and not poor:
+        return None, [], []
+    atype = "mixed" if (elite and poor) else ("elite" if elite else "poor")
+    return atype, elite, poor
+
+anomaly_types, elite_lists, poor_lists = zip(*rec_df.apply(classify_anomaly, axis=1)) if len(rec_df) else ([], [], [])
+rec_df["anomaly_type"]    = list(anomaly_types)
+rec_df["elite_metrics"]   = list(elite_lists)
+rec_df["poor_metrics"]    = list(poor_lists)
+z_cols = [f"{c}_z" for c in RADAR_COLS if f"{c}_z" in rec_df.columns]
+rec_df["anomaly_score"]   = rec_df[z_cols].abs().max(axis=1).round(3)
 print(f"✓ {len(rec_df)} recruitment players")
 
 # ── Fetch Tracking pool (Czech top flight) ────────────────────────────────────
@@ -174,7 +208,33 @@ position_list_json = json.dumps([
 radar_labels_json = json.dumps(RADAR_LABELS)
 radar_cols_json   = json.dumps([f"{c}_pct" for c in RADAR_COLS])
 pos_metrics_json  = json.dumps({k: [f"{m}_pct" for m in v] for k, v in POSITION_METRICS.items()})
+z_threshold_json  = json.dumps(Z_THRESHOLD)
 
+anomaly_records = []
+for _, row in rec_df.iterrows():
+    atype = row.get("anomaly_type")
+    if not atype or (isinstance(atype, float) and np.isnan(atype)):
+        continue
+    rec = {
+        "playerId":    safe_val(row["playerId"]),
+        "commonname":  row.get("commonname"),
+        "age":         safe_val(row.get("age")),
+        "position":    row.get("position"),
+        "squadName":   row.get("squadName"),
+        "playDuration":safe_val(row.get("playDuration")),
+        "anomaly_type":atype,
+        "anomaly_score":safe_val(row.get("anomaly_score")),
+        "elite_metrics":row.get("elite_metrics", []),
+        "poor_metrics": row.get("poor_metrics", []),
+        "zscores": {RADAR_LABELS[i]: safe_val(row.get(f"{col}_z")) for i, col in enumerate(RADAR_COLS)},
+    }
+    for c in RADAR_COLS:
+        k = f"{c}_pct"
+        if k in row.index:
+            rec[k] = safe_val(row[k])
+    rec["recruitment_score_pct"] = safe_val(row.get("recruitment_score_pct"))
+    anomaly_records.append(rec)
+anomaly_json = json.dumps(anomaly_records)
 print("✓ Data serialized")
 
 # ── HTML ──────────────────────────────────────────────────────────────────────
@@ -301,6 +361,7 @@ html = f"""<!DOCTYPE html>
   <button class="active" onclick="switchTab('recruitment',this)">⚡ Recruitment</button>
   <button onclick="switchTab('tracking',this)">📊 Player Tracking</button>
   <button onclick="switchTab('scouting',this)">🔍 Scouting</button>
+  <button onclick="switchTab('anomaly',this)">🎯 Anomaly Scouting</button>
 </nav>
 
 <!-- ═══════════════════════ RECRUITMENT ═══════════════════════ -->
@@ -397,6 +458,43 @@ html = f"""<!DOCTYPE html>
   </div>
 </div>
 
+<!-- ═══════════════════════ ANOMALY ═══════════════════════ -->
+<div id="tab-anomaly" class="section">
+  <div class="filters">
+    <div class="filter-group">
+      <label>Position</label>
+      <select id="a-pos" onchange="renderAnomaly()"><option value="">All positions</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Type</label>
+      <select id="a-type" onchange="renderAnomaly()">
+        <option value="">All types</option>
+        <option value="elite">Elite outliers</option>
+        <option value="poor">Poor outliers</option>
+        <option value="mixed">Mixed profile</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Metric</label>
+      <select id="a-metric" onchange="renderAnomaly()"><option value="">Any metric</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Min |z-score|</label>
+      <input type="range" id="a-z" min="1.5" max="3.0" step="0.25" value="1.5"
+             oninput="document.getElementById('a-z-v').textContent=parseFloat(this.value).toFixed(2);renderAnomaly()">
+      <div class="filter-val" id="a-z-v">1.50</div>
+    </div>
+    <div class="filter-group">
+      <label>Min minutes</label>
+      <input type="range" id="a-min" min="0" max="9000" step="270" value="1350"
+             oninput="document.getElementById('a-min-v').textContent=Math.round(this.value/60)+\"'\";renderAnomaly()">
+      <div class="filter-val" id="a-min-v">22'</div>
+    </div>
+  </div>
+  <div class="section-title">Statistical Outliers <span class="count-badge" id="anomaly-count"></span></div>
+  <div id="anomaly-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px"></div>
+</div>
+
 <!-- ═══════════════════════ MODAL ═══════════════════════ -->
 <div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
   <div class="modal">
@@ -412,15 +510,17 @@ html = f"""<!DOCTYPE html>
 
 <script>
 // ── Data ─────────────────────────────────────────────────────────────────────
-const REC_DATA     = {recruitment_json};
-const TRACK_DATA   = {tracking_json};
-const SQUADS       = {squad_list_json};
-const POSITIONS    = {position_list_json};
-const RADAR_LABELS = {radar_labels_json};
-const RADAR_COLS   = {radar_cols_json};
-const POS_METRICS  = {pos_metrics_json};
-const ALL_PLAYERS  = [...REC_DATA.map(p=>{{...p,_league:'2nd div'}}),
-                       ...TRACK_DATA.map(p=>{{...p,_league:'Fortuna Liga'}})];
+const REC_DATA      = {recruitment_json};
+const TRACK_DATA    = {tracking_json};
+const ANOMALY_DATA  = {anomaly_json};
+const SQUADS        = {squad_list_json};
+const POSITIONS     = {position_list_json};
+const RADAR_LABELS  = {radar_labels_json};
+const RADAR_COLS    = {radar_cols_json};
+const POS_METRICS   = {pos_metrics_json};
+const Z_THRESHOLD   = {z_threshold_json};
+const ALL_PLAYERS   = [...REC_DATA.map(p=>{{...p,_league:'2nd div'}}),
+                        ...TRACK_DATA.map(p=>{{...p,_league:'Fortuna Liga'}})];
 
 // ── Populate filters ──────────────────────────────────────────────────────────
 const posFilter = document.getElementById('f-pos');
@@ -685,9 +785,94 @@ function buildRadar(canvasId, data){{
   }});
 }}
 
+// ── Anomaly Scouting ──────────────────────────────────────────────────────────
+(function initAnomalyFilters(){{
+  const aPosEl = document.getElementById('a-pos');
+  POSITIONS.forEach(p=>{{ const o=document.createElement('option');o.value=p;o.text=posLabel(p);aPosEl.appendChild(o); }});
+  const aMetricEl = document.getElementById('a-metric');
+  RADAR_LABELS.forEach(label=>{{ const o=document.createElement('option');o.value=label;o.text=label;aMetricEl.appendChild(o); }});
+}})();
+
+function zColor(z){{
+  if(z==null) return '';
+  if(z>2.5) return '#69f0ae'; if(z>1.5) return '#4caf50';
+  if(z<-2.5) return '#ff5252'; if(z<-1.5) return '#ef5350';
+  return '#8892b0';
+}}
+function zBg(z){{
+  if(z==null) return 'transparent';
+  if(z>1.5) return 'rgba(76,175,80,.18)'; if(z<-1.5) return 'rgba(239,83,80,.18)';
+  return 'transparent';
+}}
+function typeBadge(t){{
+  if(t==='elite') return '<span style="background:#1b5e20;color:#69f0ae;padding:2px 8px;border-radius:4px;font-size:.72rem;font-weight:700">ELITE</span>';
+  if(t==='poor')  return '<span style="background:#b71c1c;color:#ff8a80;padding:2px 8px;border-radius:4px;font-size:.72rem;font-weight:700">POOR</span>';
+  return '<span style="background:#4a148c;color:#ea80fc;padding:2px 8px;border-radius:4px;font-size:.72rem;font-weight:700">MIXED</span>';
+}}
+
+function renderAnomaly(){{
+  const pos    = document.getElementById('a-pos').value;
+  const type   = document.getElementById('a-type').value;
+  const metric = document.getElementById('a-metric').value;
+  const minZ   = parseFloat(document.getElementById('a-z').value);
+  const minMin = +document.getElementById('a-min').value;
+
+  let data = ANOMALY_DATA.filter(p=>
+    (!pos  || p.position===pos) &&
+    (!type || p.anomaly_type===type) &&
+    (p.playDuration==null || p.playDuration>=minMin) &&
+    p.anomaly_score >= minZ &&
+    (!metric || p.elite_metrics.includes(metric) || p.poor_metrics.includes(metric))
+  );
+  data.sort((a,b)=>b.anomaly_score - a.anomaly_score);
+
+  document.getElementById('anomaly-count').textContent = data.length + ' players';
+
+  document.getElementById('anomaly-grid').innerHTML = data.map(p=>{{
+    const eliteRows = p.elite_metrics.map(m=>{{
+      const z=p.zscores[m];
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;border-radius:4px;background:${{zBg(z)}};margin-bottom:3px;font-size:.78rem">
+        <span style="color:#cdd6f4"><span style="color:#69f0ae;margin-right:4px">▲</span>${{m}}</span>
+        <span style="font-weight:700;color:#69f0ae">z = +${{z!=null?z.toFixed(2):'?'}}</span>
+      </div>`;
+    }}).join('');
+    const poorRows = p.poor_metrics.map(m=>{{
+      const z=p.zscores[m];
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;border-radius:4px;background:${{zBg(z)}};margin-bottom:3px;font-size:.78rem">
+        <span style="color:#cdd6f4"><span style="color:#ff5252;margin-right:4px">▼</span>${{m}}</span>
+        <span style="font-weight:700;color:#ff5252">z = ${{z!=null?z.toFixed(2):'?'}}</span>
+      </div>`;
+    }}).join('');
+
+    const recPct = p.recruitment_score_pct;
+    const recPctStr = recPct!=null ? Math.round(recPct*100)+'th pct' : '—';
+
+    return `<div class="track-card" onclick="openModal(REC_DATA.find(x=>x.playerId===${{p.playerId}}))">
+      <div class="tc-head" style="margin-bottom:10px">
+        <div>
+          <div class="tc-name">${{p.commonname||'Unknown'}}</div>
+          <div class="tc-pos" style="margin-top:3px"><span class="badge">${{posLabel(p.position)}}</span> ${{typeBadge(p.anomaly_type)}}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:.75rem;color:#8892b0">${{p.age||'?'}} yrs</div>
+          <div style="font-size:.75rem;color:#8892b0">${{fmtMin(p.playDuration)}}</div>
+          <div style="font-size:.72rem;color:#64b5f6;margin-top:2px">Rec: ${{recPctStr}}</div>
+        </div>
+      </div>
+      <div style="font-size:.73rem;color:#8892b0;margin-bottom:5px">${{p.squadName||''}}</div>
+      ${{eliteRows}}${{poorRows}}
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #1e2540;display:flex;justify-content:space-between;font-size:.75rem;color:#8892b0">
+        <span>Anomaly score</span>
+        <span style="font-weight:700;color:#e2e8f0">|z| = ${{p.anomaly_score!=null?p.anomaly_score.toFixed(2):'?'}}</span>
+      </div>
+    </div>`;
+  }}).join('') || '<div class="empty">No anomalies found with these filters.</div>';
+}}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 applyFilters();
 renderTracking();
+renderAnomaly();
 </script>
 </body>
 </html>"""
