@@ -1,0 +1,19 @@
+NK VARAŽDIN SHOOTING MODULE
+
+Season: 2025/26 1. HNL
+Matches: 35
+Shots: 408 (11.66 per match)
+xG: 43.00 (1.23 per match)
+Goals: 43 (1.23 per match)
+xGA: 45.99 (1.31 per match)
+Points per game: 1.46
+Shooting index: 95.4 (league average 100)
+
+Last three matches:
+- 2026-05-23 | Varaždin 2-0 Istra 1961 | 12 shots | 3.45 xG
+- 2026-05-15 | Varaždin 2-0 HNK Vukovar 1991 | 13 shots | 2.25 xG
+- 2026-05-09 | Varaždin 1-1 Lokomotiva Zagreb | 4 shots | 0.52 xG
+
+Method note:
+The scoreline matrix uses independent Poisson distributions with Varaždin season xG-for and xG-against per match. It is an opposition-only neutral baseline, not a Hradec-specific forecast.
+The shooting index is 70% league-normalized xG per match and 30% league-normalized shots per match.

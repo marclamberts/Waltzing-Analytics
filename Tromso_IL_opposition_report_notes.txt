@@ -1,0 +1,19 @@
+TROMSØ IL COMPLETE OPPOSITION REPORT
+
+Season: 2026 Eliteserien
+Matches: 13
+Shots: 179 (13.77 per match)
+xG: 21.58 (1.66 per match)
+Goals: 18 (1.38 per match)
+xGA: 15.00 (1.15 per match)
+Points per game: 1.92
+Shooting index: 108.0 (league average 100)
+
+Last three matches:
+- 2026-05-29 | Tromsø 0-0 KFUM-Kameratene Oslo | 14 shots | 0.97 xG
+- 2026-05-25 | Tromsø 1-1 Aalesund | 16 shots | 1.78 xG
+- 2026-05-16 | Tromsø 0-5 Bodø / Glimt | 2 shots | 0.10 xG
+
+Method note:
+The scoreline matrix uses independent Poisson distributions with Tromsø season xG-for and xG-against per match. It is an opposition-only neutral baseline, not a Hradec-specific forecast.
+The shooting index is 70% league-normalized xG per match and 30% league-normalized shots per match.
