@@ -1,19 +1,12 @@
 """
-Jamestown Analytics-Style Player Valuation Model
-Emulates Tony Bloom's value-finding approach:
+Jamestown Analytics-Style Recruitment Model — FC Hradec Králové
+2025-2026 Season | Budget cap: €1,000,000 | Recruitment focus
 
-  Core principle: find players whose STATISTICAL OUTPUT (per 90) significantly
-  exceeds what their MARKET VALUE implies — i.e., find underpriced talent.
-
-  Method:
-  1. Build a position-specific Statistical Quality Score (SQS) from weighted
-     per-90 metrics — this is the "true performance" signal.
-  2. Train a regularised XGBoost on log(market_value) using out-of-fold
-     predictions so model_value is a genuine OOF estimate, not in-sample.
-  3. "Bloom Index" = SQS_percentile_rank − MV_percentile_rank (within position).
-     Positive = player is performing above what the market prices in.
-  4. Surface players with highest Bloom Index, sufficient minutes, young enough
-     to be targets.
+Methodology:
+  1. Statistical Quality Score (SQS) per position from Wyscout per-90 metrics
+  2. Bloom Index = SQS rank − Market Value rank (positive = underpriced)
+  3. Each candidate benchmarked against the current Hradec starter at that role
+  4. Universe: CZ II + Slovak leagues 2025-2026 only (not top-flight rivals)
 """
 
 import os
@@ -27,11 +20,26 @@ import xgboost as xgb
 
 warnings.filterwarnings("ignore")
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Market I")
-OUTPUT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Market I")
+OUTPUT    = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hradec_recruitment_2526.xlsx")
+SQUAD_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hradec_player_tracking.xlsx")
+
+BUDGET_CAP = 1_000_000
+ACTIVE_SEASON = "2025-2026"
+
+# Files to INCLUDE in the recruitment universe (exclude Czech top-flight)
+RECRUITMENT_LEAGUES = [
+    "CZ II",
+    "Slovakia",
+    "Slovakia II",
+]
+
+# Age ceiling for recruits (Hradec won't chase 35-year-olds as improvements)
+MAX_AGE = 30
+MIN_MINUTES = 900  # ~10 full matches minimum
 
 # ---------------------------------------------------------------------------
-# Position groupings
+# Position mappings
 # ---------------------------------------------------------------------------
 POSITION_GROUPS = {
     "GK": ["GK"],
@@ -43,13 +51,44 @@ POSITION_GROUPS = {
     "FW": ["CF", "SS"],
 }
 
-# Weighted feature sets per position (weight = relative importance)
-# Higher weight = more Jamestown-relevant for that role
+# Impect position → our position group (for squad baseline lookup)
+IMPECT_TO_GROUP = {
+    "GOALKEEPER":                "GK",
+    "CENTRAL_DEFENDER":          "CB",
+    "RIGHT_CENTRAL_DEFENDER":    "CB",
+    "LEFT_CENTRAL_DEFENDER":     "CB",
+    "RIGHT_DEFENDER":            "FB",
+    "LEFT_DEFENDER":             "FB",
+    "RIGHT_WINGBACK_DEFENDER":   "FB",
+    "LEFT_WINGBACK_DEFENDER":    "FB",
+    "DEFENSE_MIDFIELD":          "DM",
+    "CENTRAL_MIDFIELD":          "CM",
+    "ATTACKING_MIDFIELD":        "CM",
+    "RIGHT_WINGER":              "W",
+    "LEFT_WINGER":               "W",
+    "CENTER_FORWARD":            "FW",
+    "SECOND_STRIKER":            "FW",
+}
+
+# League difficulty weights (relative to Czech I = 1.0)
+LEAGUE_WEIGHTS = {
+    "CZ":          1.00,   # Czech top-flight (excluded from targets but used for reference)
+    "CZ II":       0.82,
+    "Slovakia":    0.78,
+    "Slovakia II": 0.68,
+    "CZ U19":      0.55,
+    "CZ U17":      0.50,
+    "Slovakia U19":0.55,
+}
+
+# ---------------------------------------------------------------------------
+# Weighted feature sets per position
+# ---------------------------------------------------------------------------
 POSITION_WEIGHTS = {
     "GK": {
         "Save rate, %": 3.0,
         "Prevented goals per 90": 3.0,
-        "xG against per 90": -2.0,   # lower is better, negated below
+        "xG against per 90": -2.5,
         "Conceded goals per 90": -2.5,
         "Exits per 90": 1.5,
         "Accurate passes, %": 1.0,
@@ -118,7 +157,6 @@ POSITION_WEIGHTS = {
     },
 }
 
-# Features fed to the XGBoost market-value model
 BASE_FEATURES = [
     "Age", "Minutes played",
     "Goals per 90", "xG per 90", "Assists per 90", "xA per 90",
@@ -133,7 +171,6 @@ BASE_FEATURES = [
     "Passes to final third per 90",
     "Accurate passes to final third, %",
 ]
-
 GK_FEATURES = [
     "Age", "Minutes played",
     "Save rate, %", "Prevented goals per 90", "xG against per 90",
@@ -144,7 +181,7 @@ GK_FEATURES = [
 
 
 # ---------------------------------------------------------------------------
-# Data loading & prep
+# Helpers
 # ---------------------------------------------------------------------------
 
 def load_data() -> pd.DataFrame:
@@ -154,15 +191,16 @@ def load_data() -> pd.DataFrame:
             continue
         stem = fname.replace(".xlsx", "")
         parts = stem.rsplit(" ", 1)
+        league = parts[0] if len(parts) == 2 else stem
+        season = parts[1] if len(parts) == 2 else "unknown"
         df = pd.read_excel(os.path.join(DATA_DIR, fname))
-        df["league"] = parts[0] if len(parts) == 2 else stem
-        df["season"] = parts[1] if len(parts) == 2 else "unknown"
-        df["source_file"] = fname
+        df["league"] = league
+        df["season"] = season
         dfs.append(df)
     return pd.concat(dfs, ignore_index=True)
 
 
-def assign_position_group(pos_str) -> str:
+def assign_pos_group(pos_str) -> str:
     if not isinstance(pos_str, str):
         return "CM"
     primary = pos_str.split(",")[0].strip()
@@ -176,28 +214,56 @@ def assign_position_group(pos_str) -> str:
     return "CM"
 
 
-def clean_numeric(df: pd.DataFrame, cols: list) -> pd.DataFrame:
+def clean_numeric(df, cols):
     for c in cols:
         if c in df.columns:
             df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0)
     return df
 
 
-def get_model_features(pos_group: str) -> list:
+def get_model_features(pos_group):
     return GK_FEATURES if pos_group == "GK" else BASE_FEATURES
 
 
 # ---------------------------------------------------------------------------
-# Statistical Quality Score (SQS)
+# Load Hradec squad baseline
+# ---------------------------------------------------------------------------
+
+def load_hradec_squad() -> pd.DataFrame:
+    sq = pd.read_excel(SQUAD_FILE)
+    sq["pos_group"] = sq["position"].map(IMPECT_TO_GROUP).fillna("CM")
+    # Use IMPECT_SCORE_PACKING_pct as the overall quality percentile (0–1 → 0–100)
+    sq["hradec_quality_pct"] = (sq["IMPECT_SCORE_PACKING_pct"] * 100).round(1)
+    return sq[["commonname", "position", "pos_group", "age", "hradec_quality_pct",
+               "IMPECT_SCORE_PACKING_pct", "playDuration"]].copy()
+
+
+def squad_baseline(squad: pd.DataFrame) -> dict:
+    """
+    For each position group, return the average and min quality pct of
+    current Hradec starters (players with >10% match share, i.e. playDuration-based).
+    """
+    # Approximate starters: top-2 by playDuration per position group
+    baseline = {}
+    for pg in POSITION_GROUPS:
+        grp = squad[squad["pos_group"] == pg].nlargest(2, "playDuration")
+        if len(grp) == 0:
+            baseline[pg] = {"avg_pct": 50.0, "min_pct": 50.0, "names": []}
+        else:
+            baseline[pg] = {
+                "avg_pct": grp["hradec_quality_pct"].mean(),
+                "min_pct": grp["hradec_quality_pct"].min(),
+                "names": grp["commonname"].tolist(),
+            }
+    return baseline
+
+
+# ---------------------------------------------------------------------------
+# SQS with league adjustment
 # ---------------------------------------------------------------------------
 
 def compute_sqs(df: pd.DataFrame) -> pd.Series:
-    """
-    Compute a Statistical Quality Score for each player based on their
-    position-specific weights. Returns a normalised 0-100 score.
-    """
     scores = pd.Series(0.0, index=df.index)
-
     for pos_group, weights in POSITION_WEIGHTS.items():
         mask = df["pos_group"] == pos_group
         if mask.sum() == 0:
@@ -207,87 +273,54 @@ def compute_sqs(df: pd.DataFrame) -> pd.Series:
             if col not in df.columns:
                 continue
             vals = pd.to_numeric(df.loc[mask, col], errors="coerce").fillna(0)
-            if w < 0:
-                # Invert: lower raw value = better, so we negate before weighting
-                vals = -vals * abs(w)
-            else:
-                vals = vals * w
-            raw += vals
-        # Percentile rank within this position group → 0-100
-        pct = raw.rank(pct=True) * 100
-        scores.loc[mask] = pct
-
+            raw += (-vals * abs(w)) if w < 0 else (vals * w)
+        # Apply league difficulty multiplier
+        lw = df.loc[mask, "league"].map(LEAGUE_WEIGHTS).fillna(0.7)
+        raw = raw * lw
+        scores.loc[mask] = raw.rank(pct=True) * 100
     return scores
 
 
 # ---------------------------------------------------------------------------
-# XGBoost out-of-fold market-value prediction
+# OOF XGBoost market-value model
 # ---------------------------------------------------------------------------
 
 def oof_predict_market_value(df: pd.DataFrame) -> pd.Series:
-    """
-    For players WITH market values, produce out-of-fold XGBoost predictions
-    (so we avoid train-on-same-data inflation).
-    For players WITHOUT market values, predict using full model.
-    Returns model_value (in €) for all players.
-    """
     model_values = pd.Series(np.nan, index=df.index)
-
     for pos_group in POSITION_GROUPS:
         pg_mask = df["pos_group"] == pos_group
-        pg_df = df[pg_mask].copy()
+        pg_df = df[pg_mask]
         feats = [f for f in get_model_features(pos_group) if f in pg_df.columns]
-
-        # Split into labelled (has MV) and unlabelled
         labelled = pg_df[pg_df["Market value"] > 0].copy()
         unlabelled = pg_df[pg_df["Market value"] == 0].copy()
-
         if len(labelled) < 20:
-            # Not enough to train; fall back to SQS as proxy
             continue
-
         X_lab = labelled[feats].values.astype(float)
         y_lab = np.log1p(labelled["Market value"].values)
-
         scaler = StandardScaler()
         X_lab_s = scaler.fit_transform(X_lab)
-
-        # OOF predictions for labelled players
         oof_preds = np.full(len(labelled), np.nan)
         kf = KFold(n_splits=5, shuffle=True, random_state=42)
-        for train_idx, val_idx in kf.split(X_lab_s):
+        for ti, vi in kf.split(X_lab_s):
             m = xgb.XGBRegressor(
                 n_estimators=300, max_depth=4, learning_rate=0.05,
                 subsample=0.8, colsample_bytree=0.7,
                 min_child_weight=3, reg_alpha=0.5, reg_lambda=2.0,
                 random_state=42, verbosity=0,
             )
-            m.fit(X_lab_s[train_idx], y_lab[train_idx])
-            oof_preds[val_idx] = m.predict(X_lab_s[val_idx])
-
+            m.fit(X_lab_s[ti], y_lab[ti])
+            oof_preds[vi] = m.predict(X_lab_s[vi])
         model_values.loc[labelled.index] = np.expm1(oof_preds).round(-2)
-
-        # Full model for unlabelled players
         if len(unlabelled) > 0:
-            full_model = xgb.XGBRegressor(
+            full_m = xgb.XGBRegressor(
                 n_estimators=300, max_depth=4, learning_rate=0.05,
                 subsample=0.8, colsample_bytree=0.7,
                 min_child_weight=3, reg_alpha=0.5, reg_lambda=2.0,
                 random_state=42, verbosity=0,
             )
-            full_model.fit(X_lab_s, y_lab)
+            full_m.fit(X_lab_s, y_lab)
             X_unlab = scaler.transform(unlabelled[feats].values.astype(float))
-            preds_unlab = full_model.predict(X_unlab)
-            model_values.loc[unlabelled.index] = np.expm1(preds_unlab).round(-2)
-
-        # OOF R² for diagnostics
-        valid_oof = ~np.isnan(oof_preds)
-        r2 = r2_score(y_lab[valid_oof], oof_preds[valid_oof]) if valid_oof.sum() > 5 else np.nan
-        print(
-            f"    {pos_group:4s} — labelled={len(labelled):4d}  "
-            f"unlabelled={len(unlabelled):4d}  OOF R²={r2:.3f}"
-        )
-
+            model_values.loc[unlabelled.index] = np.expm1(full_m.predict(X_unlab)).round(-2)
     return model_values
 
 
@@ -295,195 +328,176 @@ def oof_predict_market_value(df: pd.DataFrame) -> pd.Series:
 # Main
 # ---------------------------------------------------------------------------
 
-def bloom_index_tier(bi: float) -> str:
-    """Value tier based on Bloom Index (SQS rank − MV rank, both 0-100)."""
-    if bi >= 30:
-        return "ELITE VALUE"
-    if bi >= 20:
-        return "HIGH VALUE"
-    if bi >= 10:
-        return "VALUE"
-    if bi >= -10:
-        return "FAIR PRICE"
-    if bi >= -20:
-        return "SLIGHT OVERVALUE"
+def bloom_tier(bi):
+    if pd.isna(bi):
+        return "NO LISTED VALUE"
+    if bi >= 30: return "ELITE VALUE"
+    if bi >= 20: return "HIGH VALUE"
+    if bi >= 10: return "VALUE"
+    if bi >= -10: return "FAIR PRICE"
+    if bi >= -20: return "SLIGHT OVERVALUE"
     return "OVERVALUED"
+
+
+def upgrade_flag(sqs_rank: float, hradec_avg: float, hradec_min: float) -> str:
+    """Would this player be an upgrade on Hradec's current option?"""
+    if sqs_rank >= hradec_avg + 10:
+        return "CLEAR UPGRADE"
+    if sqs_rank >= hradec_min:
+        return "ROTATIONAL / COVER"
+    return "DEPTH"
 
 
 def run():
     print("=" * 70)
-    print("  JAMESTOWN ANALYTICS — PLAYER VALUATION MODEL")
-    print("  Market I: Czech & Slovak Leagues | All Seasons")
+    print("  FC HRADEC KRÁLOVÉ — JAMESTOWN RECRUITMENT MODEL")
+    print(f"  Season: {ACTIVE_SEASON} | Budget cap: €{BUDGET_CAP:,}")
     print("=" * 70)
 
-    # 1. Load
+    # 1. Load all data (use full dataset to train the MV model)
     print("\n[1] Loading data ...")
     raw = load_data()
-    print(f"    {len(raw):,} records from {raw['source_file'].nunique()} files")
-
-    raw["pos_group"] = raw["Position"].apply(assign_position_group)
     all_feats = list(set(BASE_FEATURES + GK_FEATURES))
+    raw["pos_group"] = raw["Position"].apply(assign_pos_group)
     raw = clean_numeric(raw, all_feats)
+    raw["Market value"] = pd.to_numeric(raw["Market value"], errors="coerce").fillna(0)
 
-    MIN_MINUTES = 450
-    df = raw[raw["Minutes played"] >= MIN_MINUTES].copy().reset_index(drop=True)
-    print(f"    {len(df):,} players after ≥{MIN_MINUTES} min filter")
-    print(f"    {(df['Market value'] > 0).sum():,} with listed market value")
+    # Full universe for MV model training (all seasons, enough data)
+    full = raw[raw["Minutes played"] >= MIN_MINUTES].copy().reset_index(drop=True)
+    print(f"    Full universe (all seasons, ≥{MIN_MINUTES} min): {len(full):,} players")
 
-    # 2. Statistical Quality Score
-    print("\n[2] Computing Statistical Quality Scores ...")
-    df["sqs"] = compute_sqs(df)
-    # SQS percentile rank within position group
-    df["sqs_rank"] = df.groupby("pos_group")["sqs"].rank(pct=True) * 100
+    # 2. Load Hradec squad
+    print("\n[2] Loading FC Hradec squad baseline ...")
+    squad = load_hradec_squad()
+    baseline = squad_baseline(squad)
+    print(f"    Squad size: {len(squad)} players")
+    for pg, b in baseline.items():
+        names = ", ".join(b["names"]) if b["names"] else "—"
+        print(f"    {pg:4s}  starters: {names}  |  avg quality: {b['avg_pct']:.0f}th pctile")
 
-    # 3. Market value percentile rank (within position, for those with listed MV)
-    df["mv_rank"] = np.nan
+    # 3. SQS on full universe
+    print("\n[3] Computing Statistical Quality Scores ...")
+    full["sqs"] = compute_sqs(full)
+    full["sqs_rank"] = full.groupby("pos_group")["sqs"].rank(pct=True) * 100
+
+    # 4. OOF market value model (trained on full universe)
+    print("\n[4] Training XGBoost market-value model (OOF) ...")
+    full["model_value"] = oof_predict_market_value(full)
+
+    full["mv_rank"] = np.nan
     for pg in POSITION_GROUPS:
-        mask = (df["pos_group"] == pg) & (df["Market value"] > 0)
+        mask = (full["pos_group"] == pg) & (full["Market value"] > 0)
         if mask.sum() > 0:
-            df.loc[mask, "mv_rank"] = (
-                df.loc[mask, "Market value"].rank(pct=True) * 100
-            )
+            full.loc[mask, "mv_rank"] = full.loc[mask, "Market value"].rank(pct=True) * 100
 
-    # 4. OOF XGBoost model value
-    print("\n[3] Training XGBoost (out-of-fold) ...")
-    df["model_value"] = oof_predict_market_value(df)
-
-    # 5. Bloom Index = SQS rank − MV rank (positive = undervalued)
-    df["bloom_index"] = df["sqs_rank"] - df["mv_rank"]
-    df["value_tier"] = df["bloom_index"].apply(
-        lambda x: bloom_index_tier(x) if pd.notna(x) else "NO LISTED VALUE"
-    )
-
-    # Model value / market value ratio (for those with MV)
-    df["value_ratio"] = np.where(
-        df["Market value"] > 0,
-        df["model_value"] / df["Market value"].replace(0, np.nan),
+    full["bloom_index"] = full["sqs_rank"] - full["mv_rank"]
+    full["value_tier"] = full["bloom_index"].apply(bloom_tier)
+    full["value_ratio"] = np.where(
+        full["Market value"] > 0,
+        full["model_value"] / full["Market value"].replace(0, np.nan),
         np.nan,
     )
 
-    # 6. Export
-    print("\n[4] Writing output ...")
+    # 5. Apply recruitment filters
+    print("\n[5] Applying recruitment filters ...")
+    targets = full[
+        (full["season"] == ACTIVE_SEASON) &
+        (full["league"].isin(RECRUITMENT_LEAGUES)) &
+        (full["Market value"] <= BUDGET_CAP) &
+        (full["Age"] <= MAX_AGE) &
+        (full["Minutes played"] >= MIN_MINUTES)
+    ].copy()
+    print(f"    Candidates after filters: {len(targets):,}")
+
+    # 6. Upgrade flag vs Hradec starters
+    targets["hradec_starter_avg"] = targets["pos_group"].map(
+        {pg: b["avg_pct"] for pg, b in baseline.items()}
+    )
+    targets["hradec_starter_min"] = targets["pos_group"].map(
+        {pg: b["min_pct"] for pg, b in baseline.items()}
+    )
+    targets["hradec_starters"] = targets["pos_group"].map(
+        {pg: " / ".join(b["names"]) for pg, b in baseline.items()}
+    )
+    targets["upgrade_flag"] = targets.apply(
+        lambda r: upgrade_flag(r["sqs_rank"], r["hradec_starter_avg"], r["hradec_starter_min"]),
+        axis=1,
+    )
+    targets["vs_hradec_gap"] = (targets["sqs_rank"] - targets["hradec_starter_avg"]).round(1)
+
+    # 7. Output
     out_cols = [
-        "Player", "Team", "Position", "pos_group", "Age", "league", "season",
-        "Minutes played", "Contract expires",
+        "Player", "Team", "league", "Position", "pos_group", "Age",
+        "Contract expires", "Foot",
         "Market value", "model_value", "value_ratio",
-        "sqs", "sqs_rank", "mv_rank", "bloom_index", "value_tier",
+        "sqs_rank", "bloom_index", "value_tier",
+        "upgrade_flag", "vs_hradec_gap", "hradec_starters",
+        "Minutes played",
         "Goals per 90", "xG per 90", "Assists per 90", "xA per 90",
         "Progressive passes per 90", "Progressive runs per 90",
         "Touches in box per 90", "Defensive duels won, %",
         "Aerial duels won, %", "Dribbles per 90", "Successful dribbles, %",
-        "Key passes per 90", "PAdj Interceptions", "Save rate, %",
+        "Key passes per 90", "PAdj Interceptions",
+        "Save rate, %", "Prevented goals per 90",
     ]
-    out_cols = [c for c in out_cols if c in df.columns]
-    output = df[out_cols].copy()
+    out_cols = [c for c in out_cols if c in targets.columns]
 
-    out_path = os.path.join(OUTPUT_DIR, "jamestown_valuations.xlsx")
-    with pd.ExcelWriter(out_path, engine="openpyxl") as writer:
-        # All players sorted by Bloom Index
-        output.sort_values("bloom_index", ascending=False, na_position="last").to_excel(
-            writer, sheet_name="All Players (Bloom)", index=False
+    print("\n[6] Writing output ...")
+    with pd.ExcelWriter(OUTPUT, engine="openpyxl") as writer:
+        # Master shortlist: clear upgrades, sorted by Bloom Index
+        upgrades = targets[targets["upgrade_flag"] == "CLEAR UPGRADE"].sort_values(
+            "bloom_index", ascending=False, na_position="last"
         )
+        upgrades[out_cols].to_excel(writer, sheet_name="CLEAR UPGRADES", index=False)
 
-        # VALUE PICKS: high bloom index, enough minutes, reasonable age
-        picks = output[
-            (output["bloom_index"] >= 20) &
-            (output["Minutes played"] >= 900) &
-            (output["Age"] <= 28) &
-            (output["Market value"] > 0)
-        ].sort_values("bloom_index", ascending=False)
-        picks.to_excel(writer, sheet_name="VALUE PICKS", index=False)
+        # All targets ranked
+        all_t = targets[out_cols].sort_values(
+            "bloom_index", ascending=False, na_position="last"
+        )
+        all_t.to_excel(writer, sheet_name="All Targets (ranked)", index=False)
 
-        # Broad value targets (no age/MV restriction, for unlisted players too)
-        broad = output[
-            (output["sqs_rank"] >= 65) &
-            (output["Minutes played"] >= 900) &
-            (output["Age"] <= 27)
-        ].sort_values("sqs_rank", ascending=False)
-        broad.to_excel(writer, sheet_name="TALENT POOL (no MV needed)", index=False)
-
-        # Per-position sheets
+        # Per position
         for pg in POSITION_GROUPS:
-            sub = output[output["pos_group"] == pg].sort_values(
+            sub = targets[targets["pos_group"] == pg][out_cols].sort_values(
                 "bloom_index", ascending=False, na_position="last"
             )
             if len(sub) > 0:
                 sub.to_excel(writer, sheet_name=pg, index=False)
 
-        # Overvalued
-        overval = output[
-            (output["bloom_index"] <= -25) &
-            (output["Market value"] >= 200_000)
-        ].sort_values("bloom_index")
-        if len(overval) > 0:
-            overval.to_excel(writer, sheet_name="OVERVALUED", index=False)
+        # Hradec squad overview
+        squad_out = squad.copy()
+        squad_out.to_excel(writer, sheet_name="Hradec Squad", index=False)
 
-    print(f"    Saved → {out_path}")
+    print(f"    Saved → {OUTPUT}")
 
-    # 7. Console summary
+    # 8. Console summary
     print("\n" + "=" * 70)
-    print("  TOP VALUE PICKS (Bloom Index ≥ 20, age ≤ 28, ≥900 min, has MV)")
+    print("  CLEAR UPGRADES — top 5 per position")
     print("=" * 70)
-    top = output[
-        (output["bloom_index"] >= 20) &
-        (output["Minutes played"] >= 900) &
-        (output["Age"] <= 28) &
-        (output["Market value"] > 0)
-    ].sort_values("bloom_index", ascending=False).head(30)
-
-    if len(top) == 0:
-        print("  No players met all filters.")
-        # Diagnostic: what's the bloom index distribution?
-        with_mv = output[output["Market value"] > 0]
-        print(f"  Bloom index stats (players with MV, n={len(with_mv)}):")
-        print(f"    mean={with_mv['bloom_index'].mean():.1f}  "
-              f"std={with_mv['bloom_index'].std():.1f}  "
-              f"max={with_mv['bloom_index'].max():.1f}  "
-              f"min={with_mv['bloom_index'].min():.1f}")
-        print(f"  ≥20: {(with_mv['bloom_index'] >= 20).sum()}")
-        print(f"  ≥20 + age≤28: {((with_mv['bloom_index'] >= 20) & (with_mv['Age'] <= 28)).sum()}")
-        print(f"  ≥20 + age≤28 + mins≥900: {((with_mv['bloom_index'] >= 20) & (with_mv['Age'] <= 28) & (with_mv['Minutes played'] >= 900)).sum()}")
-    else:
-        print(
-            f"  {'Player':<22} {'Team':<20} {'Lg':<12} {'Pos':<5} "
-            f"{'Age':>3}  {'Mkt €':>8}  {'SQS':>5}  {'BI':>5}  Tier"
-        )
-        print("  " + "-" * 100)
-        for _, r in top.iterrows():
-            mv = f"{int(r['Market value']):,}"
-            bi = f"{r['bloom_index']:+.1f}" if pd.notna(r["bloom_index"]) else "—"
-            sqs = f"{r['sqs_rank']:.0f}"
-            print(
-                f"  {str(r['Player']):<22} {str(r['Team']):<20} "
-                f"{str(r['league']):<12} {str(r['pos_group']):<5} "
-                f"{int(r['Age']):>3}  {mv:>8}  {sqs:>5}  {bi:>5}  {r['value_tier']}"
-            )
-
-    print("\n" + "=" * 70)
-    print("  TALENT POOL — top performers regardless of listed MV (age ≤ 27)")
-    print("=" * 70)
-    talent = output[
-        (output["sqs_rank"] >= 75) &
-        (output["Minutes played"] >= 900) &
-        (output["Age"] <= 27)
-    ].sort_values("sqs_rank", ascending=False).head(20)
-
-    if len(talent) > 0:
-        print(
-            f"  {'Player':<22} {'Team':<20} {'Lg':<12} {'Pos':<5} "
-            f"{'Age':>3}  {'SQS rank':>8}  {'Mkt €':>8}"
-        )
-        print("  " + "-" * 90)
-        for _, r in talent.iterrows():
+    for pg in POSITION_GROUPS:
+        sub = targets[
+            (targets["pos_group"] == pg) &
+            (targets["upgrade_flag"] == "CLEAR UPGRADE")
+        ].sort_values("bloom_index", ascending=False, na_position="last").head(5)
+        if len(sub) == 0:
+            continue
+        b = baseline[pg]
+        print(f"\n  {pg} — current starters: {', '.join(b['names']) or '—'} "
+              f"(avg {b['avg_pct']:.0f}th pctile)")
+        print(f"  {'Player':<22} {'Team':<22} {'Age':>3}  "
+              f"{'SQS':>5}  {'Gap':>5}  {'Mkt €':>8}  {'BI':>5}  Tier")
+        print("  " + "-" * 85)
+        for _, r in sub.iterrows():
             mv = f"{int(r['Market value']):,}" if r["Market value"] > 0 else "—"
+            bi = f"{r['bloom_index']:+.1f}" if pd.notna(r["bloom_index"]) else "—"
+            gap = f"{r['vs_hradec_gap']:+.1f}"
             print(
-                f"  {str(r['Player']):<22} {str(r['Team']):<20} "
-                f"{str(r['league']):<12} {str(r['pos_group']):<5} "
-                f"{int(r['Age']):>3}  {r['sqs_rank']:>8.1f}  {mv:>8}"
+                f"  {str(r['Player']):<22} {str(r['Team']):<22} "
+                f"{int(r['Age']):>3}  {r['sqs_rank']:>5.1f}  {gap:>5}  "
+                f"{mv:>8}  {bi:>5}  {r['value_tier']}"
             )
 
-    print(f"\n  Output: jamestown_valuations.xlsx")
-    print(f"  Sheets: All Players (Bloom) | VALUE PICKS | TALENT POOL | GK/CB/FB/DM/CM/W/FW | OVERVALUED")
+    print(f"\n  Output: hradec_recruitment_2526.xlsx")
 
 
 if __name__ == "__main__":
