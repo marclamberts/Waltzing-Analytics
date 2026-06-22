@@ -82,9 +82,6 @@ STAT_SHORT = {
     "Shots on target, %": "SoT %",
 }
 
-TOTAL_PAGES = 10
-
-
 def fig_bytes(fig, dpi=150):
     buf = BytesIO()
     fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight",
@@ -97,7 +94,7 @@ def stamp(c, n):
     c.setFont("Helvetica", 7)
     c.setFillGray(0.5)
     c.drawString(36, 18, "FC Hradec Králové  ·  Jamestown Recruitment Model  ·  2025–2026")
-    c.drawRightString(PW - 36, 18, f"{n} / {TOTAL_PAGES}")
+    c.drawRightString(PW - 36, 18, f"Page {n}")
 
 
 def qual_col(q):
@@ -334,7 +331,7 @@ def page_value_map(c, df):
     # Footer in landscape
     c.setFont("Helvetica", 7); c.setFillGray(0.5)
     c.drawString(36, 18, "FC Hradec Králové  ·  Jamestown Recruitment Model  ·  2025–2026")
-    c.drawRightString(LW - 36, 18, f"2 / {TOTAL_PAGES}")
+    c.drawRightString(LW - 36, 18, "Page 2")
     c.showPage()
 
 
@@ -352,214 +349,165 @@ def page_position(c, df, squad_df, pg, page_num):
 
     targets = df[df["pos_group"] == pg].sort_values(
         "bloom_index", ascending=False, na_position="last"
-    ).head(8).reset_index(drop=True)
+    ).reset_index(drop=True)
 
     stats = [s for s in STAT_COLS.get(pg, []) if s in df.columns]
+    col_vals_cache = {sc: pd.to_numeric(df[df["pos_group"] == pg][sc],
+                      errors="coerce").dropna() for sc in stats}
 
-    # Figure split: main table (top ~75%) + stats table (bottom ~20%)
-    fig = plt.figure(figsize=(PW / 72, PH / 72))
-    fig.patch.set_facecolor(WHITE)
+    ROWS_PER_PAGE = 12
+    pages = [targets.iloc[i:i+ROWS_PER_PAGE]
+             for i in range(0, max(len(targets), 1), ROWS_PER_PAGE)]
 
-    gs = fig.add_gridspec(2, 1, height_ratios=[5.5, 1.6],
-                          top=0.96, bottom=0.04, left=0.0, right=1.0, hspace=0.0)
-    ax  = fig.add_subplot(gs[0])
-    ax2 = fig.add_subplot(gs[1])
-
-    for a in (ax, ax2):
-        a.set_facecolor(WHITE); a.axis("off")
-        a.set_xlim(0, 1); a.set_ylim(0, 1)
-
-    # ---- Header ----
-    ax.add_patch(Rectangle((0, 0.955), 1, 0.045, color=BLUE,
-                            transform=ax.transAxes, clip_on=False))
-    ax.text(0.04, 0.978, POSITION_LABELS[pg].upper(),
-            fontsize=12, fontweight="bold", color=WHITE, transform=ax.transAxes, va="center")
-    ax.text(0.96, 0.978, "FC HRADEC KRÁLOVÉ  ·  2025–2026",
-            fontsize=8, color=WHITE, transform=ax.transAxes, va="center", ha="right")
-
-    ax.text(0.04, 0.935,
-            f"Current starters: {starter_names}   ·   Impect quality: {starter_q:.0f}th percentile",
-            fontsize=8.5, color=GREY1, transform=ax.transAxes, va="center")
-
-    # Column header row
-    # Columns and their x positions (in axes fraction)
     COL = {
-        "#":        0.03,
-        "Player":   0.08,
-        "Team":     0.34,
-        "Age":      0.53,
-        "Contract": 0.58,
-        "Mkt Val":  0.67,
-        "SQS":      0.77,
-        "BI":       0.83,
-        "Status":   0.89,
+        "#":        0.03, "Player": 0.08, "Team": 0.34,
+        "Age":      0.53, "Contract": 0.58, "Mkt Val": 0.67,
+        "SQS":      0.77, "BI": 0.83, "Status": 0.89,
     }
-    HDR_Y = 0.910
-    for hdr, x in COL.items():
-        ax.text(x, HDR_Y, hdr, fontsize=7.5, fontweight="bold",
-                color=GREY2, transform=ax.transAxes, va="center")
 
-    ax.axhline(0.900, xmin=0.03, xmax=0.97, color=GREY3, linewidth=0.5)
+    for p_idx, page_targets in enumerate(pages):
+        fig = plt.figure(figsize=(PW / 72, PH / 72))
+        fig.patch.set_facecolor(WHITE)
 
-    if len(targets) == 0:
-        ax.text(0.5, 0.5, "No candidates found.", ha="center", va="center",
-                fontsize=10, color=GREY2, transform=ax.transAxes)
-    else:
-        row_h = 0.108
-        y0    = 0.865
+        show_stats = (p_idx == 0 and len(stats) > 0 and len(page_targets) > 0)
+        hr = [5.5, 1.6] if show_stats else [1]
+        gs = fig.add_gridspec(len(hr), 1, height_ratios=hr,
+                              top=0.96, bottom=0.04, left=0.0, right=1.0, hspace=0.0)
+        ax  = fig.add_subplot(gs[0])
+        ax.set_facecolor(WHITE); ax.axis("off")
+        ax.set_xlim(0, 1); ax.set_ylim(0, 1)
 
-        for i, (_, row) in enumerate(targets.iterrows()):
-            y   = y0 - i * row_h
-            bg  = GREY4 if i % 2 == 0 else WHITE
-            ax.add_patch(Rectangle((0.03, y - row_h * 0.46), 0.94, row_h * 0.92,
-                                   color=bg, transform=ax.transAxes))
+        # Header
+        ax.add_patch(Rectangle((0, 0.955), 1, 0.045, color=BLUE,
+                                transform=ax.transAxes, clip_on=False))
+        pg_label = POSITION_LABELS[pg].upper()
+        if len(pages) > 1:
+            pg_label += f"  ({p_idx+1}/{len(pages)})"
+        ax.text(0.04, 0.978, pg_label,
+                fontsize=12, fontweight="bold", color=WHITE, transform=ax.transAxes, va="center")
+        ax.text(0.96, 0.978, "FC HRADEC KRÁLOVÉ  ·  2025–2026",
+                fontsize=8, color=WHITE, transform=ax.transAxes, va="center", ha="right")
+        ax.text(0.04, 0.935,
+                f"Current starters: {starter_names}   ·   Impect quality: {starter_q:.0f}th percentile   ·   "
+                f"{len(targets)} candidates total",
+                fontsize=8.5, color=GREY1, transform=ax.transAxes, va="center")
 
-            uf = str(row.get("upgrade_flag", ""))
-            strip_col = GREEN if uf == "CLEAR UPGRADE" else BLUE if uf == "ROTATIONAL / COVER" else GREY3
-            ax.add_patch(Rectangle((0.03, y - row_h * 0.46), 0.005, row_h * 0.92,
-                                   color=strip_col, transform=ax.transAxes))
-
-            # Rank
-            ax.text(COL["#"], y, f"{i+1}", fontsize=9, fontweight="bold",
+        HDR_Y = 0.910
+        for hdr, x in COL.items():
+            ax.text(x, HDR_Y, hdr, fontsize=7.5, fontweight="bold",
                     color=GREY2, transform=ax.transAxes, va="center")
+        ax.axhline(0.900, xmin=0.03, xmax=0.97, color=GREY3, linewidth=0.5)
 
-            # Player name + position code (2 lines)
-            ax.text(COL["Player"], y + 0.022, str(row["Player"]),
-                    fontsize=9, fontweight="bold", color=BLACK,
-                    transform=ax.transAxes, va="center")
-            ax.text(COL["Player"], y - 0.022, str(row.get("Position", "")),
-                    fontsize=6.5, color=GREY2, transform=ax.transAxes, va="center")
+        if len(page_targets) == 0:
+            ax.text(0.5, 0.5, "No candidates found.", ha="center", va="center",
+                    fontsize=10, color=GREY2, transform=ax.transAxes)
+        else:
+            row_h = 0.108
+            y0    = 0.865
+            for i, (_, row) in enumerate(page_targets.iterrows()):
+                global_rank = p_idx * ROWS_PER_PAGE + i + 1
+                y   = y0 - i * row_h
+                bg  = GREY4 if i % 2 == 0 else WHITE
+                ax.add_patch(Rectangle((0.03, y - row_h*0.46), 0.94, row_h*0.92,
+                                       color=bg, transform=ax.transAxes))
+                uf = str(row.get("upgrade_flag", ""))
+                sc = GREEN if uf == "CLEAR UPGRADE" else BLUE if uf == "ROTATIONAL / COVER" else GREY3
+                ax.add_patch(Rectangle((0.03, y - row_h*0.46), 0.005, row_h*0.92,
+                                       color=sc, transform=ax.transAxes))
+                ax.text(COL["#"], y, f"{global_rank}", fontsize=9, fontweight="bold",
+                        color=GREY2, transform=ax.transAxes, va="center")
+                ax.text(COL["Player"], y+0.022, str(row["Player"]), fontsize=9,
+                        fontweight="bold", color=BLACK, transform=ax.transAxes, va="center")
+                ax.text(COL["Player"], y-0.022, str(row.get("Position","")), fontsize=6.5,
+                        color=GREY2, transform=ax.transAxes, va="center")
+                ax.text(COL["Team"], y+0.022, str(row["Team"]), fontsize=8.5,
+                        color=BLACK, transform=ax.transAxes, va="center")
+                ax.text(COL["Team"], y-0.022, str(row["league"]), fontsize=6.5,
+                        color=GREY2, transform=ax.transAxes, va="center")
+                age = int(row["Age"])
+                ax.text(COL["Age"], y, str(age), fontsize=9, fontweight="bold",
+                        color=GREEN if age<=23 else GREY1 if age<=27 else GREY2,
+                        transform=ax.transAxes, va="center")
+                cflag, ccol = contract_fmt(row.get("Contract expires",""))
+                ax.text(COL["Contract"], y, cflag, fontsize=7.5, color=ccol,
+                        transform=ax.transAxes, va="center")
+                mv = f"€{int(row['Market value']):,}" if row.get("Market value",0)>0 else "—"
+                ax.text(COL["Mkt Val"], y, mv, fontsize=8, color=BLACK,
+                        transform=ax.transAxes, va="center")
+                sqs = float(row.get("sqs_rank", 0))
+                ax.text(COL["SQS"], y, f"{sqs:.0f}", fontsize=9.5, fontweight="bold",
+                        color=GREEN if sqs>=70 else AMBER if sqs>=40 else RED,
+                        transform=ax.transAxes, va="center")
+                bi = row.get("bloom_index", np.nan)
+                ax.text(COL["BI"], y, f"{bi:+.0f}" if pd.notna(bi) else "—",
+                        fontsize=9.5, fontweight="bold", color=bi_col(bi),
+                        transform=ax.transAxes, va="center")
+                ftxt, fcol = upgrade_fmt(uf)
+                ax.text(COL["Status"], y, ftxt, fontsize=7.5, color=fcol,
+                        fontweight="bold", transform=ax.transAxes, va="center")
 
-            # Team + league (2 lines)
-            ax.text(COL["Team"], y + 0.022, str(row["Team"]),
-                    fontsize=8.5, color=BLACK, transform=ax.transAxes, va="center")
-            ax.text(COL["Team"], y - 0.022, str(row["league"]),
-                    fontsize=6.5, color=GREY2, transform=ax.transAxes, va="center")
+        # Stats grid — first page only
+        if show_stats:
+            ax2 = fig.add_subplot(gs[1])
+            ax2.set_facecolor(WHITE); ax2.axis("off")
+            ax2.set_xlim(0, 1); ax2.set_ylim(0, 1)
+            ax2.add_patch(Rectangle((0,0), 1, 1, color=GREY4, transform=ax2.transAxes))
 
-            # Age
-            age = int(row["Age"])
-            age_col = GREEN if age <= 23 else GREY1 if age <= 27 else GREY2
-            ax.text(COL["Age"], y, str(age), fontsize=9, color=age_col,
-                    fontweight="bold", transform=ax.transAxes, va="center")
+            n_p   = len(page_targets)
+            label_w = 0.16
+            col_w   = (1.0 - label_w - 0.03) / n_p
+            cell_h  = 0.82 / (len(stats) + 1)
+            header_y = 1.0 - cell_h * 0.5
 
-            # Contract
-            cflag, ccol = contract_fmt(row.get("Contract expires", ""))
-            ax.text(COL["Contract"], y, cflag, fontsize=7.5, color=ccol,
-                    transform=ax.transAxes, va="center")
+            ax2.text(0.02, header_y, "KEY METRICS", fontsize=6.5, fontweight="bold",
+                     color=GREY2, transform=ax2.transAxes, va="center")
+            for ti, (_, row) in enumerate(page_targets.iterrows()):
+                cx = label_w + ti * col_w + col_w / 2
+                ax2.text(cx, header_y, str(row["Player"]).split()[-1][:9],
+                         fontsize=6, color=BLACK, transform=ax2.transAxes,
+                         va="center", ha="center", fontweight="bold")
+            sep_y = 1.0 - cell_h
+            ax2.axhline(sep_y, color=GREY3, linewidth=0.5)
 
-            # Market value
-            mv = f"€{int(row['Market value']):,}" if row.get("Market value", 0) > 0 else "—"
-            ax.text(COL["Mkt Val"], y, mv, fontsize=8, color=BLACK,
-                    transform=ax.transAxes, va="center")
+            for si, sc_name in enumerate(stats):
+                row_yc = sep_y - cell_h * (si + 0.5)
+                ax2.text(label_w - 0.01, row_yc, STAT_SHORT.get(sc_name, sc_name[:16]),
+                         fontsize=6.5, color=GREY1, transform=ax2.transAxes,
+                         va="center", ha="right")
+                col_vals = col_vals_cache[sc_name]
+                for ti, (_, row) in enumerate(page_targets.iterrows()):
+                    cx  = label_w + ti * col_w
+                    val = float(row.get(sc_name, 0) or 0)
+                    pct = float((col_vals <= val).sum()) / max(len(col_vals), 1)
+                    cc  = GREEN if pct >= 0.7 else AMBER if pct >= 0.4 else RED
+                    pad = 0.003
+                    ax2.add_patch(Rectangle((cx+pad, row_yc - cell_h*0.45),
+                                            col_w - pad*2, cell_h*0.85,
+                                            color=cc, alpha=0.18, transform=ax2.transAxes))
+                    ax2.text(cx + col_w/2, row_yc, f"{val:.1f}", fontsize=6.5,
+                             color=BLACK, transform=ax2.transAxes, va="center", ha="center")
 
-            # SQS
-            sqs = float(row.get("sqs_rank", 0))
-            sqs_col = GREEN if sqs >= 70 else AMBER if sqs >= 40 else RED
-            ax.text(COL["SQS"], y, f"{sqs:.0f}", fontsize=9.5, fontweight="bold",
-                    color=sqs_col, transform=ax.transAxes, va="center")
+        img = fig_bytes(fig, dpi=160)
+        plt.close(fig)
+        c.setPageSize(A4)
+        c.drawImage(img, 0, 0, PW, PH)
+        stamp(c, page_num + p_idx)
+        c.showPage()
 
-            # BI
-            bi = row.get("bloom_index", np.nan)
-            bi_str = f"{bi:+.0f}" if pd.notna(bi) else "—"
-            ax.text(COL["BI"], y, bi_str, fontsize=9.5, fontweight="bold",
-                    color=bi_col(bi), transform=ax.transAxes, va="center")
-
-            # Status
-            flag_txt, flag_col = upgrade_fmt(uf)
-            ax.text(COL["Status"], y, flag_txt, fontsize=7.5, color=flag_col,
-                    fontweight="bold", transform=ax.transAxes, va="center")
-
-    # ---- Stats table (bottom panel) — coloured cell grid ----
-    ax2.add_patch(Rectangle((0, 0), 1, 1, color=GREY4, transform=ax2.transAxes))
-
-    if len(targets) > 0 and len(stats) > 0:
-        n_players = len(targets)
-        n_stats   = len(stats)
-
-        label_w = 0.16   # left column for stat name
-        data_w  = 1.0 - label_w - 0.03
-        col_w   = data_w / n_players
-        cell_h  = 0.82 / (n_stats + 1)  # +1 for header row
-
-        header_y = 1.0 - cell_h * 0.5
-
-        # Header: "KEY METRICS" label + player surnames
-        ax2.text(0.02, header_y, "KEY METRICS",
-                 fontsize=6.5, fontweight="bold", color=GREY2,
-                 transform=ax2.transAxes, va="center")
-        for ti, (_, row) in enumerate(targets.iterrows()):
-            cx = label_w + ti * col_w + col_w / 2
-            name_short = str(row["Player"]).split()[-1][:9]
-            ax2.text(cx, header_y, name_short, fontsize=6, color=BLACK,
-                     transform=ax2.transAxes, va="center", ha="center", fontweight="bold")
-
-        # Separator line below header
-        sep_y = 1.0 - cell_h
-        ax2.axhline(sep_y, color=GREY3, linewidth=0.5)
-
-        # Stat rows
-        col_vals_cache = {}
-        for sc in stats:
-            col_vals_cache[sc] = pd.to_numeric(
-                df[df["pos_group"] == pg][sc], errors="coerce").dropna()
-
-        for si, sc in enumerate(stats):
-            row_y_centre = sep_y - cell_h * (si + 0.5)
-            short = STAT_SHORT.get(sc, sc[:16])
-
-            # Stat label
-            ax2.text(label_w - 0.01, row_y_centre, short, fontsize=6.5, color=GREY1,
-                     transform=ax2.transAxes, va="center", ha="right")
-
-            col_vals = col_vals_cache[sc]
-
-            for ti, (_, row) in enumerate(targets.iterrows()):
-                cx  = label_w + ti * col_w
-                val = float(row.get(sc, 0) or 0)
-                pct = float((col_vals <= val).sum()) / max(len(col_vals), 1)
-
-                cell_col = GREEN if pct >= 0.7 else AMBER if pct >= 0.4 else RED
-                pad = 0.003
-                ax2.add_patch(Rectangle(
-                    (cx + pad, row_y_centre - cell_h * 0.45),
-                    col_w - pad * 2, cell_h * 0.85,
-                    color=cell_col, alpha=0.18, transform=ax2.transAxes
-                ))
-                ax2.text(cx + col_w / 2, row_y_centre, f"{val:.1f}",
-                         fontsize=6.5, color=BLACK,
-                         transform=ax2.transAxes, va="center", ha="center")
-
-    img = fig_bytes(fig, dpi=160)
-    plt.close(fig)
-    c.setPageSize(A4)
-    c.drawImage(img, 0, 0, PW, PH)
-    stamp(c, page_num)
-    c.showPage()
+    return len(pages)  # pages consumed
 
 
 # ---------------------------------------------------------------------------
 # Page 10 — Priority shortlist
 # ---------------------------------------------------------------------------
 def page_shortlist(c, df, page_num):
-    top = df[df["upgrade_flag"] == "CLEAR UPGRADE"].nlargest(15, "bloom_index").reset_index(drop=True)
+    all_top = (df[df["upgrade_flag"] == "CLEAR UPGRADE"]
+               .sort_values("bloom_index", ascending=False, na_position="last")
+               .reset_index(drop=True))
 
-    fig, ax = plt.subplots(figsize=(PW / 72, PH / 72))
-    fig.patch.set_facecolor(WHITE)
-    ax.set_facecolor(WHITE); ax.axis("off")
-    ax.set_xlim(0, 1); ax.set_ylim(0, 1)
-
-    # Header
-    ax.add_patch(Rectangle((0, 0.956), 1, 0.044, color=BLUE,
-                            transform=ax.transAxes, clip_on=False))
-    ax.text(0.04, 0.978, "PRIORITY SHORTLIST",
-            fontsize=12, fontweight="bold", color=WHITE, transform=ax.transAxes, va="center")
-    ax.text(0.96, 0.978, "TOP 15 CLEAR UPGRADES  ·  ALL POSITIONS",
-            fontsize=8, color=WHITE, transform=ax.transAxes, va="center", ha="right")
-
-    ax.text(0.04, 0.934,
-            "Ranked by Bloom Index  ·  All are clear upgrades on current starters  ·  Budget ≤ €1M",
-            fontsize=8.5, color=GREY1, transform=ax.transAxes, va="center")
-    ax.axhline(0.922, xmin=0.04, xmax=0.96, color=GREY3, linewidth=0.5)
+    ROWS_PER_PAGE = 14
+    pages = [all_top.iloc[i:i+ROWS_PER_PAGE]
+             for i in range(0, max(len(all_top), 1), ROWS_PER_PAGE)]
 
     COLS = {
         "#":         0.04,
@@ -573,62 +521,88 @@ def page_shortlist(c, df, page_num):
         "BI":        0.85,
         "vs Hradec": 0.91,
     }
-    HDR_Y = 0.905
-    for hdr, x in COLS.items():
-        ax.text(x, HDR_Y, hdr, fontsize=7.5, fontweight="bold",
-                color=GREY2, transform=ax.transAxes, va="center")
-    ax.axhline(0.896, xmin=0.04, xmax=0.96, color=GREY3, linewidth=0.4)
 
-    row_h = 0.054; y0 = 0.876
+    for p_idx, page_top in enumerate(pages):
+        fig, ax = plt.subplots(figsize=(PW / 72, PH / 72))
+        fig.patch.set_facecolor(WHITE)
+        ax.set_facecolor(WHITE); ax.axis("off")
+        ax.set_xlim(0, 1); ax.set_ylim(0, 1)
 
-    for i, (_, row) in enumerate(top.iterrows()):
-        y  = y0 - i * row_h
-        bg = GREY4 if i % 2 == 0 else WHITE
-        ax.add_patch(Rectangle((0.03, y - 0.023), 0.94, row_h - 0.005,
-                               color=bg, transform=ax.transAxes))
+        page_label = f"ALL CLEAR UPGRADES  ·  ALL POSITIONS"
+        if len(pages) > 1:
+            page_label += f"  ({p_idx+1}/{len(pages)})"
+        ax.add_patch(Rectangle((0, 0.956), 1, 0.044, color=BLUE,
+                                transform=ax.transAxes, clip_on=False))
+        ax.text(0.04, 0.978, "PRIORITY SHORTLIST",
+                fontsize=12, fontweight="bold", color=WHITE, transform=ax.transAxes, va="center")
+        ax.text(0.96, 0.978, page_label,
+                fontsize=8, color=WHITE, transform=ax.transAxes, va="center", ha="right")
 
-        bi      = row.get("bloom_index", np.nan)
-        sqs     = float(row.get("sqs_rank", 0))
-        gap     = row.get("vs_hradec_gap", np.nan)
-        mv      = f"€{int(row['Market value']):,}" if row.get("Market value", 0) > 0 else "—"
-        bi_str  = f"{bi:+.0f}" if pd.notna(bi) else "—"
-        gap_str = f"{gap:+.0f}" if pd.notna(gap) and gap != 0 else "—"
-        cflag, ccol = contract_fmt(row.get("Contract expires", ""))
-        strip_col   = GREEN if pd.notna(bi) and bi >= 20 else BLUE
+        ax.text(0.04, 0.934,
+                f"Ranked by Bloom Index  ·  All are clear upgrades on current starters  ·  "
+                f"Budget ≤ €1M  ·  {len(all_top)} total",
+                fontsize=8.5, color=GREY1, transform=ax.transAxes, va="center")
+        ax.axhline(0.922, xmin=0.04, xmax=0.96, color=GREY3, linewidth=0.5)
 
-        ax.add_patch(Rectangle((0.03, y - 0.023), 0.004, row_h - 0.005,
-                               color=strip_col, transform=ax.transAxes))
-
-        values = {
-            "#":         (f"{i+1}",                  GREY2,     False),
-            "Player":    (str(row["Player"])[:26],    BLACK,     True),
-            "Pos":       (str(row["pos_group"]),      BLUE,      True),
-            "Team":      (str(row["Team"])[:20],      GREY1,     False),
-            "Age":       (str(int(row["Age"])),       GREEN if row["Age"] <= 23 else GREY1, False),
-            "Contract":  (cflag,                      ccol,      False),
-            "Mkt Val":   (mv,                         BLACK,     False),
-            "SQS":       (f"{sqs:.0f}",               GREEN if sqs >= 70 else AMBER, True),
-            "BI":        (bi_str,                     strip_col, True),
-            "vs Hradec": (gap_str,                    GREEN if pd.notna(gap) and gap > 0 else RED, True),
-        }
+        HDR_Y = 0.905
         for hdr, x in COLS.items():
-            val, col, bold = values[hdr]
-            ax.text(x, y, val, fontsize=8.5 if bold else 8,
-                    color=col, fontweight="bold" if bold else "normal",
-                    transform=ax.transAxes, va="center")
+            ax.text(x, HDR_Y, hdr, fontsize=7.5, fontweight="bold",
+                    color=GREY2, transform=ax.transAxes, va="center")
+        ax.axhline(0.896, xmin=0.04, xmax=0.96, color=GREY3, linewidth=0.4)
 
-    ax.axhline(0.054, xmin=0.04, xmax=0.96, color=GREY3, linewidth=0.5)
-    ax.text(0.04, 0.038,
-            "vs Hradec = SQS rank gap vs current starter average at that position  ·  "
-            "✦ = contract expiring 2026 (potential cut-price acquisition)",
-            fontsize=7.5, color=GREY2, transform=ax.transAxes, va="center")
+        row_h = 0.054; y0 = 0.876
 
-    img = fig_bytes(fig, dpi=160)
-    plt.close(fig)
-    c.setPageSize(A4)
-    c.drawImage(img, 0, 0, PW, PH)
-    stamp(c, page_num)
-    c.showPage()
+        for i, (_, row) in enumerate(page_top.iterrows()):
+            global_rank = p_idx * ROWS_PER_PAGE + i + 1
+            y  = y0 - i * row_h
+            bg = GREY4 if i % 2 == 0 else WHITE
+            ax.add_patch(Rectangle((0.03, y - 0.023), 0.94, row_h - 0.005,
+                                   color=bg, transform=ax.transAxes))
+
+            bi      = row.get("bloom_index", np.nan)
+            sqs     = float(row.get("sqs_rank", 0))
+            gap     = row.get("vs_hradec_gap", np.nan)
+            mv      = f"€{int(row['Market value']):,}" if row.get("Market value", 0) > 0 else "—"
+            bi_str  = f"{bi:+.0f}" if pd.notna(bi) else "—"
+            gap_str = f"{gap:+.0f}" if pd.notna(gap) and gap != 0 else "—"
+            cflag, ccol = contract_fmt(row.get("Contract expires", ""))
+            strip_col   = GREEN if pd.notna(bi) and bi >= 20 else BLUE
+
+            ax.add_patch(Rectangle((0.03, y - 0.023), 0.004, row_h - 0.005,
+                                   color=strip_col, transform=ax.transAxes))
+
+            values = {
+                "#":         (f"{global_rank}",              GREY2,     False),
+                "Player":    (str(row["Player"])[:26],        BLACK,     True),
+                "Pos":       (str(row["pos_group"]),          BLUE,      True),
+                "Team":      (str(row["Team"])[:20],          GREY1,     False),
+                "Age":       (str(int(row["Age"])),           GREEN if row["Age"] <= 23 else GREY1, False),
+                "Contract":  (cflag,                          ccol,      False),
+                "Mkt Val":   (mv,                             BLACK,     False),
+                "SQS":       (f"{sqs:.0f}",                   GREEN if sqs >= 70 else AMBER, True),
+                "BI":        (bi_str,                         strip_col, True),
+                "vs Hradec": (gap_str,                        GREEN if pd.notna(gap) and gap > 0 else RED, True),
+            }
+            for hdr, x in COLS.items():
+                val, col, bold = values[hdr]
+                ax.text(x, y, val, fontsize=8.5 if bold else 8,
+                        color=col, fontweight="bold" if bold else "normal",
+                        transform=ax.transAxes, va="center")
+
+        ax.axhline(0.054, xmin=0.04, xmax=0.96, color=GREY3, linewidth=0.5)
+        ax.text(0.04, 0.038,
+                "vs Hradec = SQS rank gap vs current starter average at that position  ·  "
+                "✦ = contract expiring 2026 (potential cut-price acquisition)",
+                fontsize=7.5, color=GREY2, transform=ax.transAxes, va="center")
+
+        img = fig_bytes(fig, dpi=160)
+        plt.close(fig)
+        c.setPageSize(A4)
+        c.drawImage(img, 0, 0, PW, PH)
+        stamp(c, page_num + p_idx)
+        c.showPage()
+
+    return len(pages)
 
 
 # ---------------------------------------------------------------------------
@@ -659,13 +633,15 @@ def run():
     print("  [2] Value map ...")
     page_value_map(c, df)
 
-    print("  [3–9] Position pages ...")
-    for i, pg in enumerate(POSITION_ORDER):
-        print(f"        {pg} ...")
-        page_position(c, df, squad_df, pg, page_num=3 + i)
+    print("  [3+] Position pages ...")
+    page_num = 3
+    for pg in POSITION_ORDER:
+        print(f"        {pg} (page {page_num}) ...")
+        pages_used = page_position(c, df, squad_df, pg, page_num=page_num)
+        page_num += pages_used
 
-    print("  [10] Shortlist ...")
-    page_shortlist(c, df, page_num=10)
+    print(f"  [{page_num}+] Shortlist ...")
+    page_shortlist(c, df, page_num=page_num)
 
     c.save()
     print(f"\n  Done → {OUTPUT_PDF}")

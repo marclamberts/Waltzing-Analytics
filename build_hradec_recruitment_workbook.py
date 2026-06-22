@@ -475,13 +475,13 @@ def run():
     print("  Priority list ...")
     ws_pri = wb.create_sheet("Priority List")
     ws_pri.sheet_view.showGridLines = False
-    priority = df_raw[df_raw["upgrade_flag"] == "CLEAR UPGRADE"].nlargest(30, "bloom_index")
+    priority = df_raw[df_raw["upgrade_flag"] == "CLEAR UPGRADE"].sort_values(
+        "bloom_index", ascending=False, na_position="last")
     df_pri = build_df(priority)
-    # Round floats
     for col in df_pri.select_dtypes(include="float").columns:
         df_pri[col] = df_pri[col].round(2)
     write_data_sheet(ws_pri, df_pri,
-                     "PRIORITY LIST — Top 30 Clear Upgrades",
+                     f"PRIORITY LIST — All {len(df_pri)} Clear Upgrades",
                      "Ranked by Bloom Index  ·  All are clear upgrades on current Hradec starters  ·  Budget ≤ €1M")
 
     # ---- All Targets ----
