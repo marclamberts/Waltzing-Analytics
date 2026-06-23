@@ -358,7 +358,7 @@ def build_readme(ws):
     title_row(ws, 1, "FC HRADEC KRÁLOVÉ — JAMESTOWN RECRUITMENT MODEL  2025–26", 20,
               bg=NAVY, size=14, height=32)
     subtitle_row(ws, 2,
-        "Waltzing Analytics  ·  Jamestown / Tony Lamberts methodology  ·  CZ II + Slovakia + Slovakia II  ·  Budget ≤ €1,000,000  ·  Age ≤ 30",
+        "Waltzing Analytics  ·  Jamestown / Marc Lamberts methodology  ·  CZ II + Slovakia + Slovakia II  ·  Budget ≤ €1,000,000  ·  Age ≤ 30",
         20, height=15)
 
     # Section headers helper
@@ -403,7 +403,7 @@ def build_readme(ws):
 
     # ── METHODOLOGY
     sec(29, "METHODOLOGY — HOW THE MODEL WORKS")
-    row2(30, "Overview",           "The Jamestown / Tony Lamberts approach: in lower leagues, market values are driven by reputation and agent relationships, NOT by objective statistical output. This creates systematic and exploitable price inefficiencies. The model quantifies this gap.", h=30)
+    row2(30, "Overview",           "The Jamestown / Marc Lamberts approach: in lower leagues, market values are driven by reputation and agent relationships, NOT by objective statistical output. This creates systematic and exploitable price inefficiencies. The model quantifies this gap.", h=30)
     row2(31, "Step 1 — Data",      "Load Wyscout Market I files for CZ II, Slovakia, Slovakia II (2025-26 season). Filter: ≥900 minutes played, Age ≤30, Market Value ≤€1M. 551 players pass these criteria.")
     row2(32, "Step 2 — SQS",       "Compute position-weighted per-90 stats score. Weight matrix tailored to each position (FW: Goals/xG/Box touches highest; DM: Interceptions/Def duels highest etc.). Apply league difficulty multiplier (CZ II ×0.82, Slovakia ×0.78, Slovakia II ×0.68). Percentile-rank within position group → SQS Rank 0–100.")
     row2(33, "Step 3 — Model Val", "Train XGBoost to predict log(market value) from age, position, league, minutes, SQS components. 5-fold stratified cross-validation. Out-of-fold predictions only — model never predicts on data it trained on. Exponentiate back to euros.")
