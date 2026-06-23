@@ -221,7 +221,7 @@ def page_cover(c, df, squad_df):
     method = (
         "Statistical Quality Score (SQS): position-weighted composite of per-90 Wyscout metrics, "
         "adjusted for league difficulty (CZ II ×0.82 · Slovakia ×0.78 · Slovakia II ×0.68).\n\n"
-        "Bloom Index (BI): SQS percentile rank minus Market Value percentile rank within the "
+        "Lamberts Index (LI): SQS percentile rank minus Market Value percentile rank within the "
         "same position pool. Positive = player performing above what the market prices in.\n\n"
         "Recruitment universe: CZ II + Slovak leagues, 2025–2026 only. Budget ≤ €1M, age ≤ 30, "
         "minimum 900 minutes played."
@@ -251,7 +251,7 @@ def page_value_map(c, df):
              ha="center", fontsize=13, fontweight="bold", color=BLACK)
     fig.text(0.5, 0.925,
              "Each dot = one candidate.  Gold ring = clear upgrade on current Hradec starter.  "
-             "Dot size = Bloom Index magnitude.",
+             "Dot size = Lamberts Index magnitude.",
              ha="center", fontsize=8, color=GREY2)
 
     # 2 rows × 4 cols, hide last cell
@@ -539,7 +539,7 @@ def page_shortlist(c, df, page_num):
                 fontsize=8, color=WHITE, transform=ax.transAxes, va="center", ha="right")
 
         ax.text(0.04, 0.934,
-                f"Ranked by Bloom Index  ·  All are clear upgrades on current starters  ·  "
+                f"Ranked by Lamberts Index  ·  All are clear upgrades on current starters  ·  "
                 f"Budget ≤ €1M  ·  {len(all_top)} total",
                 fontsize=8.5, color=GREY1, transform=ax.transAxes, va="center")
         ax.axhline(0.922, xmin=0.04, xmax=0.96, color=GREY3, linewidth=0.5)

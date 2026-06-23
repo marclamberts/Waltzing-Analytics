@@ -392,7 +392,7 @@ table.dataTable tbody tr:hover td{background:#F8FAFF}
       </div>
     </div>
     <div class="card">
-      <div class="card-title">Bloom Index distribution by position</div>
+      <div class="card-title">Lamberts Index distribution by position</div>
       <svg id="beeswarmSvg" height="290" style="width:100%;overflow:visible"></svg>
     </div>
   </div>
@@ -499,7 +499,7 @@ table.dataTable tbody tr:hover td{background:#F8FAFF}
   </div>
   <div class="g2" style="margin-bottom:16px">
     <div class="card">
-      <div class="card-title" id="pos-bar-title">Top 20 by Bloom Index</div>
+      <div class="card-title" id="pos-bar-title">Top 20 by Lamberts Index</div>
       <canvas id="posTopBar" height="360"></canvas>
     </div>
     <div class="card">
@@ -570,7 +570,7 @@ table.dataTable tbody tr:hover td{background:#F8FAFF}
 
 <footer class="footer">
   <strong>Methodology:</strong> Statistical Quality Score (SQS) = position-weighted per-90 Wyscout metrics, league-difficulty adjusted (CZ II ×0.82 · Slovakia ×0.78 · Slovakia II ×0.68).
-  Bloom Index = SQS percentile − Market Value percentile. Positive = underpriced player. XGBoost out-of-fold predictions for model value.
+  Lamberts Index = SQS percentile − Market Value percentile. Positive = underpriced player. XGBoost out-of-fold predictions for model value.
   Percentiles computed within position group. ✦ = contract expiring June 2026.
   &nbsp;&middot;&nbsp; Waltzing Analytics &middot; FC Hradec Králové 2025-26 &middot; Jamestown Analytics methodology
 </footer>
@@ -620,7 +620,7 @@ function updateShortlistUI(){
     return `<div class="sl-player">
       <div class="sl-avatar" style="background:${TC[d.tier]||"#888"}">${initials}</div>
       <div class="sl-info"><div class="sl-name">${d.name}</div>
-        <div class="sl-meta">${d.pos} · ${d.team} · BI ${fmt_bi(d.bi)} · ${fmt_mv(d.mv)}</div></div>
+        <div class="sl-meta">${d.pos} · ${d.team} · LI ${fmt_bi(d.bi)} · ${fmt_mv(d.mv)}</div></div>
       <button class="sl-remove" onclick="toggleStar('${name.replace(/'/g,"\\'")}')">✕</button>
     </div>`;
   }).join("");
@@ -789,7 +789,7 @@ function drawBeeswarm(){
    .selectAll("line").attr("stroke","#F1F5F9");
   g.select(".domain").remove();
   g.append("text").attr("x",iW/2).attr("y",iH+24).attr("text-anchor","middle")
-   .attr("font-size",10).attr("fill","#9CA3AF").text("Bloom Index");
+   .attr("font-size",10).attr("fill","#9CA3AF").text("Lamberts Index");
 
   // Bands
   POS.forEach((pos,i)=>{
@@ -1045,7 +1045,7 @@ function setupAutocomplete(inputId, acId, onSelect){
     hits.forEach(d=>{
       const item=document.createElement("div"); item.className="ac-item";
       item.innerHTML=`<div class="ac-name">${d.name}</div>
-        <div class="ac-meta">${d.pos} · ${d.team} · ${d.league} · BI ${fmt_bi(d.bi)} · ${fmt_mv(d.mv)}</div>`;
+        <div class="ac-meta">${d.pos} · ${d.team} · ${d.league} · LI ${fmt_bi(d.bi)} · ${fmt_mv(d.mv)}</div>`;
       item.addEventListener("click",()=>{inp.value=d.name;ac.style.display="none";onSelect(d);});
       ac.appendChild(item);
     });
@@ -1078,7 +1078,7 @@ function renderScout(d){
     </div>
     <div class="sh-nums">
       <div class="sh-num"><div class="n">${d.sqs}</div><div class="l">SQS Rank</div></div>
-      <div class="sh-num"><div class="n" style="color:${biC}">${fmt_bi(d.bi)}</div><div class="l">Bloom Index</div></div>
+      <div class="sh-num"><div class="n" style="color:${biC}">${fmt_bi(d.bi)}</div><div class="l">Lamberts Index</div></div>
       <div class="sh-num"><div class="n">${fmt_mv(d.mv)}</div><div class="l">Market Value</div></div>
       <div class="sh-num"><div class="n">${fmt_mv(d.model_v)}</div><div class="l">Model Value</div></div>
       <div class="sh-num"><div class="n">${vratio}</div><div class="l">Value Ratio</div></div>
@@ -1109,7 +1109,7 @@ function renderScout(d){
     ?` Contract expires <strong>June 2026</strong> — potential cut-price or free acquisition.</p><p>`:"";
   document.getElementById("scoutReport").innerHTML=`
     <p><strong>${d.name}</strong> plays as ${d.position} at <strong>${d.team}</strong> (${d.league}).
-    Rated <strong>${TL[d.tier]}</strong> with a Bloom Index of
+    Rated <strong>${TL[d.tier]}</strong> with a Lamberts Index of
     <strong style="color:${biC}">${fmt_bi(d.bi)}</strong> — statistical output is
     <strong>${d.bi>0?"statistically underpriced relative to":"overpriced relative to"}</strong> market valuation.</p>
     <p style="margin-top:8px">Represents ${uLabel} on current Hradec <strong>${d.pos}</strong> starters
@@ -1170,7 +1170,7 @@ function renderPosTab(pos){
   document.querySelectorAll("#tab-positions .pos-btn").forEach(b=>b.classList.toggle("active",b.dataset.pos===pos));
   const pd=DATA.filter(d=>d.pos===pos).sort((a,b)=>b.bi-a.bi);
   ["posTopBar","posScatter","posAgeBar","posTierDonut"].forEach(id=>{if(posCharts[id]){posCharts[id].destroy();delete posCharts[id];}});
-  document.getElementById("pos-bar-title").textContent=`${pos} — Top 20 by Bloom Index`;
+  document.getElementById("pos-bar-title").textContent=`${pos} — Top 20 by Lamberts Index`;
   document.getElementById("pos-scatter-title").textContent=`${pos} — SQS vs Market Value`;
   document.getElementById("pos-age-title").textContent=`${pos} — Age distribution`;
   document.getElementById("pos-tier-title").textContent=`${pos} — Value tier breakdown`;
@@ -1178,7 +1178,7 @@ function renderPosTab(pos){
   posCharts.posTopBar=new Chart(document.getElementById("posTopBar").getContext("2d"),{
     type:"bar",
     data:{labels:top20.map(d=>d.name.split(" ").slice(-1)[0].substring(0,12)),
-      datasets:[{label:"Bloom Index",data:top20.map(d=>d.bi),
+      datasets:[{label:"Lamberts Index",data:top20.map(d=>d.bi),
         backgroundColor:top20.map(d=>d.bi>=20?"#1E8449CC":d.bi>=10?"#1A56DBCC":d.bi>=0?"#D4700ACC":"#C0392BCC"),
         borderRadius:5,borderSkipped:false}]},
     options:{indexAxis:"y",responsive:true,
@@ -1186,7 +1186,7 @@ function renderPosTab(pos){
         const d=top20[ctx.dataIndex];
         return [`BI: ${fmt_bi(d.bi)}`,`SQS: ${d.sqs}`,fmt_mv(d.mv),d.upgrade];
       }}}},
-      scales:{x:{grid:{color:"#F9FAFB"},title:{display:true,text:"Bloom Index",font:{size:10}}},
+      scales:{x:{grid:{color:"#F9FAFB"},title:{display:true,text:"Lamberts Index",font:{size:10}}},
               y:{grid:{display:false},ticks:{font:{size:10}}}}}
   });
   const tDS=["ELITE","HIGH","VALUE","FAIR","OVER"].map(t=>({
@@ -1198,7 +1198,7 @@ function renderPosTab(pos){
     type:"bubble",data:{datasets:tDS},
     options:{responsive:true,
       plugins:{legend:{position:"top",labels:{boxWidth:9,font:{size:9}}},
-               tooltip:{callbacks:{label:ctx=>{const d=ctx.raw._d;return [`${d.name}`,`SQS ${d.sqs}  BI ${fmt_bi(d.bi)}`,fmt_mv(d.mv)];} }}},
+               tooltip:{callbacks:{label:ctx=>{const d=ctx.raw._d;return [`${d.name}`,`SQS ${d.sqs}  LI ${fmt_bi(d.bi)}`,fmt_mv(d.mv)];} }}},
       scales:{x:{grid:{color:"#F9FAFB"},title:{display:true,text:"Mkt Val (€k)",font:{size:10}},min:0},
               y:{min:0,max:100,grid:{color:"#F9FAFB"},title:{display:true,text:"SQS",font:{size:10}}}}}
   });

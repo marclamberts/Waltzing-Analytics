@@ -3,9 +3,9 @@ FC Hradec Králové — Jamestown Recruitment Workbook  (v3 — extensive)
 
 Sheets:
   README            — Methodology, column guide, how to use
-  Priority List     — All CLEAR UPGRADE players, ranked by Bloom Index
-  Elite Picks       — BI ≥ 30 (ELITE VALUE tier), compound signal analysis
-  Bloom Analysis    — BI statistics, top 5 per position, distributions
+  Priority List     — All CLEAR UPGRADE players, ranked by Lamberts Index
+  Elite Picks       — LI ≥ 30 (ELITE VALUE tier), compound signal analysis
+  Lamberts Analysis    — LI statistics, top 5 per position, distributions
   All Targets       — All 551 candidates, every metric, full filters
   GK/CB/FB/DM/CM/W/FW — Per-position deep-dive tabs
   Expiring 2026     — Players with contract expiry this summer
@@ -109,7 +109,7 @@ MAIN_COLS = [
     ("value_ratio",                 "Val Ratio",        10),
     ("value_tier",                  "Tier",             12),
     ("sqs_rank",                    "SQS Rank",         10),
-    ("bloom_index",                 "Bloom Index",      12),
+    ("bloom_index",                 "Lamberts Index",      12),
     ("upgrade_flag",                "Status",           16),
     ("vs_hradec_gap",               "vs Hradec",        11),
     ("Minutes played",              "Minutes",          10),
@@ -245,9 +245,9 @@ def write_table(ws, df, title_text, subtitle_text="",
                 ws.cell(r, ci).alignment = align("center", "center")
             except: pass
 
-        # ── Bloom Index colour + bold
-        if "Bloom Index" in col_idx_map:
-            ci = col_idx_map["Bloom Index"]
+        # ── Lamberts Index colour + bold
+        if "Lamberts Index" in col_idx_map:
+            ci = col_idx_map["Lamberts Index"]
             try:
                 v = float(ws.cell(r, ci).value or 0)
                 col = (GREEN_M if v >= 30 else GREEN_M if v >= 20 else
@@ -312,9 +312,9 @@ def write_table(ws, df, title_text, subtitle_text="",
     ws.auto_filter.ref = f"A{hrow}:{get_column_letter(ncols)}{hrow}"
     ws.freeze_panes = f"B{hrow+1}"
 
-    # Bloom Index color scale
-    if "Bloom Index" in col_idx_map:
-        bl = get_column_letter(col_idx_map["Bloom Index"])
+    # Lamberts Index color scale
+    if "Lamberts Index" in col_idx_map:
+        bl = get_column_letter(col_idx_map["Lamberts Index"])
         dr = hrow + 1; er = hrow + len(df)
         ws.conditional_formatting.add(f"{bl}{dr}:{bl}{er}", ColorScaleRule(
             start_type="num", start_value=-50, start_color="C0392B",
@@ -358,7 +358,7 @@ def build_readme(ws):
     title_row(ws, 1, "FC HRADEC KRÁLOVÉ — JAMESTOWN RECRUITMENT MODEL  2025–26", 20,
               bg=NAVY, size=14, height=32)
     subtitle_row(ws, 2,
-        "Waltzing Analytics  ·  Jamestown / Tony Bloom methodology  ·  CZ II + Slovakia + Slovakia II  ·  Budget ≤ €1,000,000  ·  Age ≤ 30",
+        "Waltzing Analytics  ·  Jamestown / Tony Lamberts methodology  ·  CZ II + Slovakia + Slovakia II  ·  Budget ≤ €1,000,000  ·  Age ≤ 30",
         20, height=15)
 
     # Section headers helper
@@ -378,11 +378,11 @@ def build_readme(ws):
     sec(4, "WORKBOOK STRUCTURE")
     row2(5,  "Sheet", "Contents", b_bold=True, h=16)
     row2(6,  "README",           "This sheet — column guide, methodology, how to use.")
-    row2(7,  "Priority List",    "ALL clear upgrade players across every position, ranked by Bloom Index. Start here for recruitment priorities.")
-    row2(8,  "Elite Picks",      "Only ELITE VALUE tier (BI ≥ 30). Compound signal table — players where BI ≥ 30 AND model undervalues AND clear upgrade. Highest-conviction targets.")
-    row2(9,  "Bloom Analysis",   "Bloom Index statistics summary — average, max, % positive per position. Top 5 players by position. BI distribution table. Compound signals.")
-    row2(10, "All Targets",      "All 551 candidates with every metric and full column filters. Ranked by Bloom Index by default.")
-    row2(11, "GK / CB / FB…",   "One tab per position. Pre-filtered to that role only, sorted by Bloom Index descending.")
+    row2(7,  "Priority List",    "ALL clear upgrade players across every position, ranked by Lamberts Index. Start here for recruitment priorities.")
+    row2(8,  "Elite Picks",      "Only ELITE VALUE tier (LI ≥ 30). Compound signal table — players where LI ≥ 30 AND model undervalues AND clear upgrade. Highest-conviction targets.")
+    row2(9,  "Lamberts Analysis",   "Lamberts Index statistics summary — average, max, % positive per position. Top 5 players by position. LI distribution table. Compound signals.")
+    row2(10, "All Targets",      "All 551 candidates with every metric and full column filters. Ranked by Lamberts Index by default.")
+    row2(11, "GK / CB / FB…",   "One tab per position. Pre-filtered to that role only, sorted by Lamberts Index descending.")
     row2(12, "Expiring 2026",    "Players whose contracts expire in 2026. Many can be acquired for free or at a heavy discount — especially valuable targets.")
     row2(13, "Budget Planner",   "Cost-optimised squad build. Elite Value + Clear Upgrade targets sorted by market value. Shows running total to help build within the €1M budget.")
     row2(14, "Squad",            "Current FC Hradec Králové squad quality scores from Impect API. Shows quality percentile by position — basis for the 'vs Hradec' gap calculations.")
@@ -391,29 +391,29 @@ def build_readme(ws):
     sec(16, "COLUMN GUIDE")
     row2(17, "Column", "Meaning", b_bold=True, h=16)
     row2(18, "SQS Rank (0–100)",  "Statistical Quality Score percentile rank within the player's position group across the full recruitment pool. Built from position-weighted per-90 Wyscout metrics (Goals, xG, xA, Prog passes, Dribbles, Def duels, Aerial duels, Interceptions etc.) adjusted by league difficulty coefficient. Green ≥70, Amber ≥40, Red <40.")
-    row2(19, "Bloom Index",        "The core Jamestown signal. SQS rank minus Market Value rank within the same position group. POSITIVE = player performing above what the market prices in (undervalued). Negative = overvalued by market. Range: −100 to +100. Green ≥20, Blue ≥10, Red <0.")
-    row2(20, "Tier",               "ELITE VALUE: BI ≥ 30 — strongest buy signal. HIGH VALUE: BI ≥ 20. VALUE: BI ≥ 10. FAIR PRICE: 0–9, no clear edge. OVERVALUED: BI < 0.")
+    row2(19, "Lamberts Index",        "The core Jamestown signal. SQS rank minus Market Value rank within the same position group. POSITIVE = player performing above what the market prices in (undervalued). Negative = overvalued by market. Range: −100 to +100. Green ≥20, Blue ≥10, Red <0.")
+    row2(20, "Tier",               "ELITE VALUE: LI ≥ 30 — strongest buy signal. HIGH VALUE: LI ≥ 20. VALUE: LI ≥ 10. FAIR PRICE: 0–9, no clear edge. OVERVALUED: LI < 0.")
     row2(21, "vs Hradec",          "SQS rank gap vs current Hradec starters at that position (top 2 by minutes, from Impect data). +25 means 25 percentile points better than who is currently playing. Green > +5, Red < −5.")
     row2(22, "Status",             "CLEAR UPGRADE: SQS rank > starter average + 10 pts — immediate first-team improvement. ROTATIONAL / COVER: near-equivalent quality, provides competition. DEPTH: below current starter level.")
     row2(23, "Model Val (€)",      "XGBoost model estimate of fair market value based on stats alone. Uses 5-fold out-of-fold predictions (never predicts on training data). OOF R² ≈ 0.12 — low R² is expected since market value is reputation-driven, not stats-driven. Gap between Model Val and Mkt Val reveals mispricing.")
-    row2(24, "Val Ratio",          "Model Val ÷ Market Val. Ratio ≥ 2.0× means the model thinks the player is worth at least twice what the market charges — a strong compound signal when combined with positive Bloom Index.")
+    row2(24, "Val Ratio",          "Model Val ÷ Market Val. Ratio ≥ 2.0× means the model thinks the player is worth at least twice what the market charges — a strong compound signal when combined with positive Lamberts Index.")
     row2(25, "Contract / Exp?",    "Contract expiry from Wyscout. Exp? column: '2026' = expiring this summer (can often be pre-contracted or acquired cheaply). '2027' = expiring next summer (negotiation opportunity).")
     row2(26, "Age",                "Green ≤23 (development asset with sell-on value). Grey 24–27 (prime window). Light grey 28+ (short resale window — lower value in the asset model).")
     row2(27, "League",             "CZ II = Czech second tier (difficulty coefficient ×0.82). Slovakia = Slovak Superliga (×0.78). Slovakia II = Slovak second tier (×0.68). SQS already accounts for this — a CZ II stat scores higher than the same stat in Slovakia II.")
 
     # ── METHODOLOGY
     sec(29, "METHODOLOGY — HOW THE MODEL WORKS")
-    row2(30, "Overview",           "The Jamestown / Tony Bloom approach: in lower leagues, market values are driven by reputation and agent relationships, NOT by objective statistical output. This creates systematic and exploitable price inefficiencies. The model quantifies this gap.", h=30)
+    row2(30, "Overview",           "The Jamestown / Tony Lamberts approach: in lower leagues, market values are driven by reputation and agent relationships, NOT by objective statistical output. This creates systematic and exploitable price inefficiencies. The model quantifies this gap.", h=30)
     row2(31, "Step 1 — Data",      "Load Wyscout Market I files for CZ II, Slovakia, Slovakia II (2025-26 season). Filter: ≥900 minutes played, Age ≤30, Market Value ≤€1M. 551 players pass these criteria.")
     row2(32, "Step 2 — SQS",       "Compute position-weighted per-90 stats score. Weight matrix tailored to each position (FW: Goals/xG/Box touches highest; DM: Interceptions/Def duels highest etc.). Apply league difficulty multiplier (CZ II ×0.82, Slovakia ×0.78, Slovakia II ×0.68). Percentile-rank within position group → SQS Rank 0–100.")
     row2(33, "Step 3 — Model Val", "Train XGBoost to predict log(market value) from age, position, league, minutes, SQS components. 5-fold stratified cross-validation. Out-of-fold predictions only — model never predicts on data it trained on. Exponentiate back to euros.")
-    row2(34, "Step 4 — Bloom BI",  "Bloom Index = SQS percentile rank − Market Value percentile rank (both ranked within position group). Positive BI = underpriced. Tier thresholds: ELITE ≥30, HIGH ≥20, VALUE ≥10, FAIR 0–9, OVER <0.")
+    row2(34, "Step 4 — Lamberts LI",  "Lamberts Index = SQS percentile rank − Market Value percentile rank (both ranked within position group). Positive LI = underpriced. Tier thresholds: ELITE ≥30, HIGH ≥20, VALUE ≥10, FAIR 0–9, OVER <0.")
     row2(35, "Step 5 — vs Hradec", "Load Impect tracking data for FC Hradec Králové (current season). Identify top 2 players by minutes at each position. Compute their average SQS-equivalent quality percentile. vs Hradec = candidate SQS rank − Hradec starter average. CLEAR UPGRADE if gap ≥ +10.")
 
     # ── HOW TO USE
     sec(37, "HOW TO USE THIS WORKBOOK")
-    row2(38, "Quick start",        "Priority List → sort Bloom Index descending → filter Status = CLEAR UPGRADE → filter Age ≤ 26 for young targets. These are your highest-conviction picks.")
-    row2(39, "Elite targets",      "Elite Picks tab → compound signal table at bottom. Players where BI ≥ 30 AND Val Ratio ≥ 2 AND CLEAR UPGRADE are the absolute strongest buy signals.")
+    row2(38, "Quick start",        "Priority List → sort Lamberts Index descending → filter Status = CLEAR UPGRADE → filter Age ≤ 26 for young targets. These are your highest-conviction picks.")
+    row2(39, "Elite targets",      "Elite Picks tab → compound signal table at bottom. Players where LI ≥ 30 AND Val Ratio ≥ 2 AND CLEAR UPGRADE are the absolute strongest buy signals.")
     row2(40, "Budget shopping",    "Budget Planner tab → shows elite/high-value clear upgrades sorted by price with running total. Plan a multi-player recruitment window within €1M.")
     row2(41, "Expiring contracts", "Expiring 2026 tab → players whose deals run out this summer. Pre-contracts, free transfers, or significant discounts. Filter by position to find your best options.")
     row2(42, "Position deep-dive", "Click any position tab (GK/CB/FB/DM/CM/W/FW). Pre-filtered, sorted by BI. Sort by SQS Rank to see best performers regardless of price. Sort by Mkt Val for cheapest options.")
@@ -424,14 +424,14 @@ def build_readme(ws):
 # BLOOM ANALYSIS SHEET
 # ══════════════════════════════════════════════════════════════════════════════
 def build_bloom_analysis(ws, df):
-    ws.title = "Bloom Analysis"
+    ws.title = "Lamberts Analysis"
     ws.sheet_view.showGridLines = False
 
     ncols = 14
     title_row(ws, 1, "BLOOM INDEX ANALYSIS — COMPLETE BREAKDOWN", ncols,
               bg=NAVY, size=13, height=28)
     subtitle_row(ws, 2,
-        "BI = SQS Percentile Rank − Market Value Percentile Rank  ·  ELITE ≥30  ·  HIGH ≥20  ·  VALUE ≥10  ·  FAIR 0–9  ·  OVER <0",
+        "LI = SQS Percentile Rank − Market Value Percentile Rank  ·  ELITE ≥30  ·  HIGH ≥20  ·  VALUE ≥10  ·  FAIR 0–9  ·  OVER <0",
         ncols)
 
     def hdr(row, vals, bg=NAVY, fg=WHITE, h=18):
@@ -452,7 +452,7 @@ def build_bloom_analysis(ws, df):
 
     # ── SECTION 1: Overall statistics
     row = 4
-    ws.cell(row, 1, "OVERALL BI STATISTICS").fill = fill(BLUE_LIGHT)
+    ws.cell(row, 1, "OVERALL LI STATISTICS").fill = fill(BLUE_LIGHT)
     ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=ncols)
     c = ws.cell(row, 1)
     c.font = font(bold=True, color=BLUE, size=10)
@@ -472,8 +472,8 @@ def build_bloom_analysis(ws, df):
     compound = df[(df["bloom_index"] >= 20) & (df["value_ratio"] >= 2) & (df["upgrade_flag"] == "CLEAR UPGRADE")].shape[0]
     exp2026_n= df["contract_flag"].astype(str).eq("2026").sum()
 
-    stats_labels = ["Total Candidates", "Avg Bloom Index", "Max Bloom Index",
-                    "Min Bloom Index", "% Positive BI", "ELITE VALUE (≥30)",
+    stats_labels = ["Total Candidates", "Avg Lamberts Index", "Max Lamberts Index",
+                    "Min Lamberts Index", "% Positive BI", "ELITE VALUE (≥30)",
                     "HIGH VALUE (≥20)", "VALUE (≥10)", "Clear Upgrades", "Compound Signals", "Expiring 2026"]
     stats_values = [total, avg_bi, max_bi, min_bi, f"{pct_pos}%", elite_n,
                     high_n, val_n, upgr_n, compound, exp2026_n]
@@ -509,7 +509,7 @@ def build_bloom_analysis(ws, df):
                 cell(row, 10, lg_avg, bold=True, color=GREEN_M if lg_avg > 0 else RED_M, bg=bg)
         row += 1
 
-    # ── SECTION 2: BI Statistics per position
+    # ── SECTION 2: LI Statistics per position
     row += 1
     ws.cell(row, 1, "BLOOM INDEX BY POSITION").fill = fill(BLUE_LIGHT)
     ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=ncols)
@@ -520,7 +520,7 @@ def build_bloom_analysis(ws, df):
     row += 1
 
     hdr(row, ["Position", "Count", "Avg BI", "Max BI", "Min BI", "% Pos BI",
-              "ELITE", "HIGH", "VALUE", "Clear Upg", "Exp 2026", "Best BI Player", "Team", "BI"])
+              "ELITE", "HIGH", "VALUE", "Clear Upg", "Exp 2026", "Best LI Player", "Team", "BI"])
     row += 1
 
     for pi, pos in enumerate(POSITION_ORDER):
@@ -556,7 +556,7 @@ def build_bloom_analysis(ws, df):
             cell(row, 14, round(float(best["bloom_index"]), 1), bold=True, color=GREEN_M, bg=bg)
         row += 1
 
-    # ── SECTION 3: BI Distribution
+    # ── SECTION 3: LI Distribution
     row += 1
     ws.cell(row, 1, "BLOOM INDEX DISTRIBUTION").fill = fill(BLUE_LIGHT)
     ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=10)
@@ -588,7 +588,7 @@ def build_bloom_analysis(ws, df):
 
     # ── SECTION 4: Compound Signals
     row += 1
-    ws.cell(row, 1, "COMPOUND SIGNALS — BI ≥ 20  AND  Val Ratio ≥ 2×  AND  CLEAR UPGRADE  (Highest-conviction targets)").fill = fill(GREEN_L)
+    ws.cell(row, 1, "COMPOUND SIGNALS — LI ≥ 20  AND  Val Ratio ≥ 2×  AND  CLEAR UPGRADE  (Highest-conviction targets)").fill = fill(GREEN_L)
     ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=ncols)
     c = ws.cell(row, 1)
     c.font = font(bold=True, color=GREEN_D, size=10)
@@ -598,7 +598,7 @@ def build_bloom_analysis(ws, df):
 
     comp_df = df[(df["bloom_index"] >= 20) & (df["value_ratio"] >= 2) & (df["upgrade_flag"] == "CLEAR UPGRADE")].sort_values("bloom_index", ascending=False)
     hdr(row, ["#", "Player", "Team", "League", "Pos", "Age", "Contract",
-              "Mkt Val (€)", "Model Val (€)", "Val Ratio", "SQS Rank", "Bloom BI", "vs Hradec", "Tier"])
+              "Mkt Val (€)", "Model Val (€)", "Val Ratio", "SQS Rank", "Lamberts LI", "vs Hradec", "Tier"])
     row += 1
     for ci2, (_, r2) in enumerate(comp_df.iterrows()):
         bg = GREEN_L if ci2 % 2 == 0 else "E8FEF0"
@@ -657,17 +657,17 @@ def build_bloom_analysis(ws, df):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TOP 5 PER POSITION SHEET (part of Bloom Analysis or separate)
+# TOP 5 PER POSITION SHEET (part of Lamberts Analysis or separate)
 # ══════════════════════════════════════════════════════════════════════════════
 def build_top5_sheet(ws, df):
     ws.title = "Top 5 per Position"
     ws.sheet_view.showGridLines = False
     ncols = 13
-    title_row(ws, 1, "TOP 5 PLAYERS PER POSITION — Ranked by Bloom Index", ncols, bg=NAVY)
-    subtitle_row(ws, 2, "Highest Bloom Index player at each position group across all recruitment leagues", ncols)
+    title_row(ws, 1, "TOP 5 PLAYERS PER POSITION — Ranked by Lamberts Index", ncols, bg=NAVY)
+    subtitle_row(ws, 2, "Highest Lamberts Index player at each position group across all recruitment leagues", ncols)
 
     col_labels = ["#", "Player", "Team", "League", "Age", "Contract",
-                  "Mkt Val (€)", "SQS Rank", "Bloom BI", "Val Ratio", "vs Hradec", "Status", "Tier"]
+                  "Mkt Val (€)", "SQS Rank", "Lamberts LI", "Val Ratio", "vs Hradec", "Status", "Tier"]
 
     row = 3
     for pi, pos in enumerate(POSITION_ORDER):
@@ -785,7 +785,7 @@ def build_expiring(ws, df):
     title_row(ws, 1, f"EXPIRING CONTRACTS 2026 — {len(exp)} PLAYERS  ·  Free transfer or cut-price acquisition opportunity", ncols,
               bg=AMBER_M, fg=WHITE, size=12, height=26)
     subtitle_row(ws, 2,
-        "Contract expires Jun 2026 — can be pre-contracted from Jan 2026 for free or acquired at heavy discount  ·  Ranked by Bloom Index",
+        "Contract expires Jun 2026 — can be pre-contracted from Jan 2026 for free or acquired at heavy discount  ·  Ranked by Lamberts Index",
         ncols, bg=AMBER_L, fg=AMBER_D)
 
     df_exp = build_df(exp)
@@ -836,7 +836,7 @@ def build_budget_planner(ws, df):
 
     hdr_row = row
     hdr_vals = ["#", "Player", "Pos", "Team", "League", "Age", "Contract",
-                "Mkt Val (€)", "Model Val (€)", "Val Ratio", "SQS", "Bloom BI",
+                "Mkt Val (€)", "Model Val (€)", "Val Ratio", "SQS", "Lamberts LI",
                 "vs HK", "Tier", "Running Total (€)"]
     for ci2, v in enumerate(hdr_vals, 1):
         c = ws.cell(row, ci2, v)
@@ -1143,7 +1143,7 @@ def run():
     for col in df_pri.select_dtypes(include="float").columns:
         df_pri[col] = df_pri[col].round(2)
     write_table(ws_pri, df_pri,
-                f"PRIORITY LIST — All {len(df_pri)} Clear Upgrades — Ranked by Bloom Index",
+                f"PRIORITY LIST — All {len(df_pri)} Clear Upgrades — Ranked by Lamberts Index",
                 "Jamestown Analytics  ·  All are clear statistical upgrades on current Hradec starters  ·  Budget ≤ €1M")
 
     # ── Elite Picks
@@ -1156,13 +1156,13 @@ def run():
     for col in df_elite.select_dtypes(include="float").columns:
         df_elite[col] = df_elite[col].round(2)
     write_table(ws_elite, df_elite,
-                f"ELITE VALUE — {len(df_elite)} Players with Bloom Index ≥ 30",
-                "Strongest buy signals  ·  Statistical output is 30+ percentile ranks above what the market charges  ·  Sorted by Bloom Index",
+                f"ELITE VALUE — {len(df_elite)} Players with Lamberts Index ≥ 30",
+                "Strongest buy signals  ·  Statistical output is 30+ percentile ranks above what the market charges  ·  Sorted by Lamberts Index",
                 table_style="TableStyleMedium7")
 
-    # ── Bloom Analysis
-    print("  Bloom Analysis ...")
-    ws_bloom = wb.create_sheet("Bloom Analysis")
+    # ── Lamberts Analysis
+    print("  Lamberts Analysis ...")
+    ws_bloom = wb.create_sheet("Lamberts Analysis")
     build_bloom_analysis(ws_bloom, df_raw)
 
     # ── Top 5 per Position
@@ -1180,7 +1180,7 @@ def run():
         df_all[col] = df_all[col].round(2)
     write_table(ws_all, df_all,
                 f"ALL TARGETS — {len(df_all)} Candidates  ·  CZ II + Slovak leagues",
-                "Use column filters to narrow by position, league, age, status, tier  ·  Ranked by Bloom Index")
+                "Use column filters to narrow by position, league, age, status, tier  ·  Ranked by Lamberts Index")
 
     # ── Per-position sheets
     for pg in POSITION_ORDER:
@@ -1195,7 +1195,7 @@ def run():
             df_pg[col] = df_pg[col].round(2)
         write_table(ws_pg, df_pg,
                     f"{POSITION_LABELS[pg].upper()} TARGETS  ·  {len(df_pg)} candidates",
-                    f"Sorted by Bloom Index  ·  All {pg} candidates in recruitment universe")
+                    f"Sorted by Lamberts Index  ·  All {pg} candidates in recruitment universe")
 
     # ── Expiring 2026
     print("  Expiring 2026 ...")
@@ -1217,7 +1217,7 @@ def run():
         "README":         "1E3A8A",
         "Priority List":  "166534",
         "Elite Picks":    "14532D",
-        "Bloom Analysis": "1A56DB",
+        "Lamberts Analysis": "1A56DB",
         "Top 5 per Pos":  "2563EB",
         "All Targets":    "374151",
         "GK":  "0369A1", "CB": "0369A1", "FB": "0369A1",

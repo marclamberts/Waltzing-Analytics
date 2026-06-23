@@ -4,7 +4,7 @@ Jamestown Analytics-Style Recruitment Model — FC Hradec Králové
 
 Methodology:
   1. Statistical Quality Score (SQS) per position from Wyscout per-90 metrics
-  2. Bloom Index = SQS rank − Market Value rank (positive = underpriced)
+  2. Lamberts Index = SQS rank − Market Value rank (positive = underpriced)
   3. Each candidate benchmarked against the current Hradec starter at that role
   4. Universe: CZ II + Slovak leagues 2025-2026 only (not top-flight rivals)
 """
@@ -328,7 +328,7 @@ def oof_predict_market_value(df: pd.DataFrame) -> pd.Series:
 # Main
 # ---------------------------------------------------------------------------
 
-def bloom_tier(bi):
+def lamberts_tier(bi):
     if pd.isna(bi):
         return "NO LISTED VALUE"
     if bi >= 30: return "ELITE VALUE"
@@ -391,7 +391,7 @@ def run():
             full.loc[mask, "mv_rank"] = full.loc[mask, "Market value"].rank(pct=True) * 100
 
     full["bloom_index"] = full["sqs_rank"] - full["mv_rank"]
-    full["value_tier"] = full["bloom_index"].apply(bloom_tier)
+    full["value_tier"] = full["bloom_index"].apply(lamberts_tier)
     full["value_ratio"] = np.where(
         full["Market value"] > 0,
         full["model_value"] / full["Market value"].replace(0, np.nan),
@@ -444,7 +444,7 @@ def run():
 
     print("\n[6] Writing output ...")
     with pd.ExcelWriter(OUTPUT, engine="openpyxl") as writer:
-        # Master shortlist: clear upgrades, sorted by Bloom Index
+        # Master shortlist: clear upgrades, sorted by Lamberts Index
         upgrades = targets[targets["upgrade_flag"] == "CLEAR UPGRADE"].sort_values(
             "bloom_index", ascending=False, na_position="last"
         )
