@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FC Hradec Králové — Jamestown Recruitment Workbook 2025-26</title>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#1A56DB;--blue-dark:#1E3A8A;--blue-mid:#2563EB;
+  --green:#166534;--green-light:#D1FAE5;--green-mid:#1E8449;
+  --amber:#92400E;--amber-light:#FEF3C7;--amber-mid:#D4700A;
+  --red:#991B1B;--red-light:#FEE2E2;--red-mid:#C0392B;
+  --grey:#6B7280;--grey-light:#F3F4F6;--grey-border:#E5E7EB;
+  --white:#fff;--page-bg:#E8ECF0;
+  --cell-even:#F8FAFF;--cell-odd:#fff;
+  --header-bg:#1E3A8A;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--page-bg);color:#111;font-size:13px;
+     display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* ── WORKBOOK HEADER ── */
+.wb-header{background:var(--header-bg);color:#fff;padding:0 24px;
+           display:flex;align-items:center;justify-content:space-between;height:52px;flex-shrink:0}
+.wb-logo{display:flex;align-items:center;gap:12px}
+.wb-logo .crest{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.15);
+                border:1.5px solid rgba(255,255,255,.3);display:flex;align-items:center;
+                justify-content:center;font-size:12px;font-weight:900;letter-spacing:-1px}
+.wb-logo h1{font-size:15px;font-weight:800;letter-spacing:-.3px}
+.wb-logo .sub{font-size:10px;opacity:.6;margin-top:1px}
+.wb-meta{display:flex;align-items:center;gap:16px;font-size:11px;opacity:.7}
+.wb-meta span{display:flex;align-items:center;gap:4px}
+.wb-actions{display:flex;gap:8px}
+.wb-btn{padding:5px 12px;border-radius:5px;border:1px solid rgba(255,255,255,.25);
+        background:rgba(255,255,255,.1);color:#fff;font-size:11px;font-weight:600;
+        cursor:pointer;transition:.15s;font-family:inherit}
+.wb-btn:hover{background:rgba(255,255,255,.2)}
+
+/* ── SHEET AREA ── */
+.sheet-area{flex:1;overflow-y:auto;background:var(--page-bg);padding:20px 24px 8px}
+
+/* ── BOTTOM TAB BAR ── */
+.tab-bar{background:#D1D5DB;border-top:2px solid #9CA3AF;display:flex;
+         align-items:flex-end;padding:0 12px;gap:2px;height:36px;flex-shrink:0;overflow-x:auto}
+.sheet-tab{padding:6px 18px;font-size:11px;font-weight:700;color:#4B5563;
+           background:#E5E7EB;border:1px solid #9CA3AF;border-bottom:none;
+           border-radius:4px 4px 0 0;cursor:pointer;white-space:nowrap;transition:.1s;
+           display:flex;align-items:center;gap:5px}
+.sheet-tab:hover{background:#F3F4F6;color:#1A56DB}
+.sheet-tab.active{background:#fff;color:var(--blue);border-color:#9CA3AF;
+                  border-bottom:2px solid #fff;margin-bottom:-2px;padding-bottom:8px}
+.sheet-tab .tab-dot{width:7px;height:7px;border-radius:50%}
+
+/* ── SHEET PANEL ── */
+.sheet-panel{display:none}.sheet-panel.active{display:block}
+
+/* ── DOCUMENT TITLE BLOCK ── */
+.doc-title{background:#fff;border:1px solid var(--grey-border);border-radius:8px;
+           padding:18px 24px;margin-bottom:16px;display:flex;align-items:flex-start;justify-content:space-between}
+.doc-title h2{font-size:18px;font-weight:900;color:var(--header-bg);letter-spacing:-.4px}
+.doc-title .doc-sub{font-size:12px;color:var(--grey);margin-top:4px}
+.doc-title .doc-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.doc-tag{padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;border:1px solid}
+.doc-meta{text-align:right;font-size:11px;color:var(--grey);line-height:1.8}
+.doc-meta strong{color:#111;font-weight:700}
+
+/* ── SECTION HEADERS ── */
+.section{background:#fff;border:1px solid var(--grey-border);border-radius:8px;
+         margin-bottom:14px;overflow:hidden}
+.section-hdr{background:linear-gradient(90deg,var(--header-bg),#2563EB);color:#fff;
+             padding:10px 18px;display:flex;align-items:center;justify-content:space-between}
+.section-hdr h3{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.7px}
+.section-hdr .sh-sub{font-size:10px;opacity:.7}
+.section-body{padding:16px 18px}
+.section-body.no-pad{padding:0}
+
+/* ── FINDING CARDS ── */
+.findings{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.finding{border-radius:8px;padding:14px 16px;border-left:4px solid}
+.finding.blue{background:#EFF6FF;border-color:var(--blue)}
+.finding.green{background:var(--green-light);border-color:var(--green-mid)}
+.finding.amber{background:var(--amber-light);border-color:var(--amber-mid)}
+.finding.red{background:var(--red-light);border-color:var(--red-mid)}
+.finding .f-num{font-size:26px;font-weight:900;line-height:1;letter-spacing:-1px}
+.finding.blue .f-num{color:var(--blue)} .finding.green .f-num{color:var(--green-mid)}
+.finding.amber .f-num{color:var(--amber-mid)} .finding.red .f-num{color:var(--red-mid)}
+.finding .f-lbl{font-size:11px;font-weight:600;color:#374151;margin-top:4px}
+.finding .f-desc{font-size:10px;color:var(--grey);margin-top:3px;line-height:1.5}
+
+/* ── EXCEL-STYLE TABLES ── */
+.xl-table{width:100%;border-collapse:collapse;font-size:12px}
+.xl-table thead tr{background:var(--header-bg);color:#fff}
+.xl-table thead th{padding:8px 10px;font-size:10px;font-weight:700;text-transform:uppercase;
+                   letter-spacing:.4px;white-space:nowrap;border-right:1px solid rgba(255,255,255,.1)}
+.xl-table tbody tr:nth-child(even) td{background:var(--cell-even)}
+.xl-table tbody tr:nth-child(odd)  td{background:var(--cell-odd)}
+.xl-table tbody tr:hover td{background:#EFF6FF!important}
+.xl-table tbody td{padding:7px 10px;border-bottom:1px solid #F1F5F9;border-right:1px solid #F5F5F5;
+                   white-space:nowrap}
+.xl-table tbody td.wrap{white-space:normal}
+.xl-table tfoot td{background:#F8FAFC;font-weight:700;font-size:11px;padding:7px 10px;
+                   border-top:2px solid var(--grey-border)}
+
+/* ── CONDITIONAL CELL FILLS ── */
+.cell-elite{background:#D1FAE5!important;color:#065F46;font-weight:700}
+.cell-high {background:#DCFCE7!important;color:#166534;font-weight:700}
+.cell-value{background:#DBEAFE!important;color:#1E40AF;font-weight:700}
+.cell-fair {background:#F3F4F6!important;color:#6B7280}
+.cell-over {background:#FEE2E2!important;color:#991B1B;font-weight:700}
+.cell-upgr {background:#D1FAE5!important;color:#065F46;font-weight:700}
+.cell-rot  {background:#FEF3C7!important;color:#92400E}
+.cell-depth{background:#F9FAFB!important;color:#9CA3AF}
+.cell-green{color:#166534;font-weight:700} .cell-amber{color:#92400E;font-weight:700}
+.cell-red  {color:#991B1B;font-weight:700} .cell-blue {color:var(--blue);font-weight:700}
+.cell-grey {color:#9CA3AF}
+.cflag     {color:#DC2626;font-weight:700;font-size:10px}
+
+/* ── PBAR (inline percentile bar) ── */
+.pbar-wrap{display:flex;align-items:center;gap:5px}
+.pbar-track{width:50px;height:5px;background:#E5E7EB;border-radius:3px;overflow:hidden;flex-shrink:0}
+.pbar-fill{height:100%;border-radius:3px}
+.pbar-val{font-size:11px;font-weight:700;min-width:24px}
+
+/* ── DATATABLE OVERRIDES ── */
+table.dataTable thead th{background:var(--header-bg)!important;color:#fff!important;
+  font-size:10px!important;font-weight:700!important;text-transform:uppercase!important;
+  letter-spacing:.4px!important;border-bottom:none!important;padding:8px 10px!important;
+  border-right:1px solid rgba(255,255,255,.1)!important}
+table.dataTable tbody td{padding:7px 10px!important;font-size:12px!important;border-bottom:1px solid #F1F5F9!important}
+table.dataTable tbody tr:nth-child(even) td{background:var(--cell-even)!important}
+table.dataTable tbody tr:hover td{background:#EFF6FF!important}
+.dataTables_wrapper .dataTables_filter input{border:1.5px solid var(--grey-border);border-radius:5px;padding:4px 10px;font-family:inherit;font-size:12px}
+.dataTables_wrapper .dataTables_length select{border:1.5px solid var(--grey-border);border-radius:5px;font-family:inherit}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current{background:var(--blue)!important;color:#fff!important;border-radius:5px;border:none!important}
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover{background:#EFF6FF!important;color:var(--blue)!important;border-radius:5px;border:none!important}
+.dataTables_info,.dataTables_length,.dataTables_filter{font-size:11px;color:var(--grey)}
+
+/* ── METHODOLOGY ── */
+.method-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.method-block{background:#F8FAFC;border:1px solid var(--grey-border);border-radius:8px;padding:16px}
+.method-block h4{font-size:12px;font-weight:800;color:var(--header-bg);text-transform:uppercase;
+                 letter-spacing:.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--blue)}
+.method-block p{font-size:12px;color:#374151;line-height:1.7;margin-bottom:8px}
+.method-block p:last-child{margin-bottom:0}
+.formula-box{background:var(--header-bg);color:#fff;border-radius:6px;padding:12px 16px;
+             font-family:monospace;font-size:13px;margin:10px 0;text-align:center;letter-spacing:.5px}
+.weight-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}
+.weight-table th{background:#E0E7FF;color:var(--blue);padding:5px 8px;font-weight:700;
+                 text-align:left;border:1px solid #C7D2FE}
+.weight-table td{padding:5px 8px;border:1px solid #E5E7EB}
+.weight-table tr:nth-child(even) td{background:#F5F7FF}
+.threshold-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #F1F5F9}
+.threshold-row:last-child{border-bottom:none}
+.t-badge{padding:2px 10px;border-radius:20px;font-size:10px;font-weight:800;min-width:90px;text-align:center}
+.t-def{font-size:11px;color:#374151;line-height:1.5}
+.callout{background:#EFF6FF;border-left:4px solid var(--blue);padding:10px 14px;border-radius:0 6px 6px 0;margin:10px 0}
+.callout p{font-size:12px;color:#1E40AF;line-height:1.6}
+.callout strong{color:var(--header-bg)}
+
+/* ── PIZZA PLOT (Scout sheet) ── */
+.scout-layout{display:grid;grid-template-columns:480px 1fr;gap:16px;align-items:start}
+.search-box-wb{padding:10px 14px 10px 38px;border:2px solid var(--grey-border);border-radius:6px;
+               font-size:13px;font-family:inherit;width:100%;outline:none;transition:.2s;
+               background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center}
+.search-box-wb:focus{border-color:var(--blue)}
+.ac-dd{position:absolute;background:#fff;border:1px solid var(--grey-border);border-radius:8px;
+       box-shadow:0 10px 28px rgba(0,0,0,.12);z-index:200;width:100%;max-height:280px;overflow-y:auto;top:calc(100%+4px)}
+.ac-item{padding:9px 14px;cursor:pointer;border-bottom:1px solid #F9FAFB;transition:.1s}
+.ac-item:hover{background:#F0F7FF} .ac-item:last-child{border:none}
+.ac-name{font-size:13px;font-weight:700} .ac-meta{font-size:10px;color:var(--grey);margin-top:1px}
+.player-card{background:linear-gradient(135deg,var(--header-bg) 0%,#1d4ed8 100%);
+             color:#fff;border-radius:8px;padding:18px 22px;margin-bottom:14px}
+.pc-top{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.pc-avatar{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.18);
+           border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;
+           justify-content:center;font-size:16px;font-weight:900;flex-shrink:0}
+.pc-name{font-size:20px;font-weight:900;letter-spacing:-.4px}
+.pc-meta{font-size:11px;opacity:.7;margin-top:2px}
+.pc-stats{display:flex;border-top:1px solid rgba(255,255,255,.2);padding-top:12px;gap:0}
+.pc-stat{flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15)}
+.pc-stat:last-child{border:none}
+.pc-stat .s-n{font-size:18px;font-weight:900}
+.pc-stat .s-l{font-size:9px;opacity:.6;text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
+.pizza-legend{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.pl-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--grey)}
+.pl-dot{width:9px;height:9px;border-radius:50%}
+
+/* ── CHARTS ── */
+.charts-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.charts-3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px}
+.chart-card{background:#fff;border:1px solid var(--grey-border);border-radius:8px;padding:16px}
+.chart-card h4{font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;
+               letter-spacing:.5px;margin-bottom:12px;border-left:3px solid var(--blue);padding-left:8px}
+
+/* ── POSITION ANALYSIS ── */
+.pos-pills{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.pos-pill{padding:5px 14px;border-radius:20px;border:1.5px solid var(--grey-border);
+          background:#fff;cursor:pointer;font-size:11px;font-weight:700;color:var(--grey);transition:.15s}
+.pos-pill:hover,.pos-pill.active{background:var(--blue);border-color:var(--blue);color:#fff}
+
+/* ── SQUAD SHEET ── */
+.squad-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:16px}
+.squad-pos-col h5{font-size:9px;font-weight:800;text-align:center;background:var(--header-bg);
+                  color:#fff;padding:4px;border-radius:4px 4px 0 0;text-transform:uppercase;letter-spacing:.4px}
+.squad-player{padding:5px 6px;font-size:10px;background:#fff;border:1px solid var(--grey-border);
+              border-top:none;text-align:center;cursor:default;transition:.1s}
+.squad-player:hover{background:#EFF6FF}
+.squad-player .sp-name{font-weight:600;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.squad-player .sp-q{font-size:9px;font-weight:700;margin-top:1px}
+
+/* ── FILTER ROW ── */
+.filter-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.filter-row label{font-size:11px;font-weight:600;color:var(--grey)}
+.filter-sel{padding:5px 10px;border-radius:5px;border:1.5px solid var(--grey-border);
+            font-size:11px;font-family:inherit;background:#fff}
+.filter-sel:focus{border-color:var(--blue);outline:none}
+.filter-count{font-size:11px;color:var(--grey);margin-left:auto}
+
+/* ── TOOLTIP ── */
+#tt{position:fixed;display:none;background:#1E3A8A;color:#fff;
+    box-shadow:0 10px 28px rgba(0,0,0,.2);border-radius:8px;padding:12px 15px;
+    z-index:999;max-width:230px;pointer-events:none;font-size:12px}
+#tt h4{font-size:13px;font-weight:800;margin-bottom:6px}
+.tt-r{display:flex;justify-content:space-between;gap:14px;margin:3px 0}
+.tt-l{opacity:.65} .tt-v{font-weight:700}
+
+/* ── PRINT ── */
+@media print{
+  body{overflow:auto;height:auto}
+  .tab-bar,.wb-actions,.filter-row,.dataTables_wrapper .dataTables_paginate,
+  .dataTables_wrapper .dataTables_filter,.dataTables_wrapper .dataTables_length{display:none!important}
+  .sheet-panel{display:block!important}
+  .sheet-area{overflow:visible;padding:0}
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#F3F4F6}
+::-webkit-scrollbar-thumb{background:#CBD5E0;border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- WORKBOOK HEADER -->
+<div class="wb-header">
+  <div class="wb-logo">
+    <div class="crest">HK</div>
+    <div>
+      <h1>FC Hradec Králové &mdash; Jamestown Recruitment Workbook</h1>
+      <div class="sub">Waltzing Analytics &middot; 2025&ndash;26 Season &middot; CZ II + Slovakia + Slovakia II</div>
+    </div>
+  </div>
+  <div class="wb-meta">
+    <span>📅 June 2026</span>
+    <span>👤 Analyst: Waltzing Analytics</span>
+    <span>📊 __TOTAL__ candidates</span>
+  </div>
+  <div class="wb-actions">
+    <button class="wb-btn" onclick="window.print()">🖨 Print</button>
+    <button class="wb-btn" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+</div>
+
+<!-- SHEET CONTENT -->
+<div class="sheet-area">
+
+  <!-- ═══════════════════════════════════════════════════ SUMMARY -->
+  <div class="sheet-panel active" id="sheet-summary">
+    <div class="doc-title">
+      <div>
+        <h2>Executive Summary &mdash; Recruitment Cycle 2025&ndash;26</h2>
+        <div class="doc-sub">Jamestown Analytics methodology &middot; Statistical edge-finding in CZ II and Slovak leagues</div>
+        <div class="doc-tags">
+          <span class="doc-tag" style="color:var(--blue);border-color:var(--blue);background:#EFF6FF">Budget: €1,000,000</span>
+          <span class="doc-tag" style="color:var(--green-mid);border-color:var(--green-mid);background:var(--green-light)">551 Candidates</span>
+          <span class="doc-tag" style="color:var(--amber-mid);border-color:var(--amber-mid);background:var(--amber-light)">7 Positions</span>
+        </div>
+      </div>
+      <div class="doc-meta">
+        <div><strong>Club:</strong> FC Hradec Králové</div>
+        <div><strong>League:</strong> Czech First League (CZ I)</div>
+        <div><strong>Season:</strong> 2025&ndash;26</div>
+        <div><strong>Methodology:</strong> Jamestown / Tony Bloom</div>
+        <div><strong>Model:</strong> XGBoost OOF v2.1</div>
+      </div>
+    </div>
+
+    <div class="findings" id="summary-findings"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <div class="section">
+        <div class="section-hdr"><h3>Top 15 Priority Targets</h3><span class="sh-sub">Ranked by Bloom Index &middot; CLEAR UPGRADE only</span></div>
+        <div class="section-body no-pad">
+          <table class="xl-table" id="summaryTable">
+            <thead><tr>
+              <th>#</th><th>Player</th><th>Pos</th><th>Team</th><th>League</th>
+              <th>Age</th><th>Contract</th><th>Mkt Val</th><th>SQS</th><th>Bloom BI</th><th>vs HK</th><th>Tier</th>
+            </tr></thead>
+            <tbody id="summaryBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="chart-card">
+          <h4>Opportunity Map — SQS vs Market Value</h4>
+          <canvas id="sumScatter" height="220"></canvas>
+        </div>
+        <div class="chart-card">
+          <h4>Budget allocation — Elite Value picks</h4>
+          <div id="budgetViz"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-3">
+      <div class="chart-card">
+        <h4>Bloom Value Tier Distribution</h4>
+        <canvas id="sumDonut" height="180"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4>Candidates by Position</h4>
+        <canvas id="sumPos" height="180"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4>League Distribution</h4>
+        <canvas id="sumLeague" height="180"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ METHODOLOGY -->
+  <div class="sheet-panel" id="sheet-methodology">
+    <div class="doc-title">
+      <div>
+        <h2>Model Methodology &mdash; Jamestown Analytics Framework</h2>
+        <div class="doc-sub">How we find statistically undervalued players using the Tony Bloom edge-finding approach</div>
+      </div>
+      <div class="doc-meta">
+        <div><strong>Framework:</strong> Jamestown Analytics</div>
+        <div><strong>Pioneered by:</strong> Tony Bloom, Brighton &amp; Hove Albion</div>
+        <div><strong>Data:</strong> Wyscout per-90 &middot; Impect API</div>
+      </div>
+    </div>
+
+    <div class="section" style="margin-bottom:14px">
+      <div class="section-hdr"><h3>The Jamestown Edge — Why This Works</h3></div>
+      <div class="section-body">
+        <div class="callout">
+          <p><strong>Core insight:</strong> In lower leagues (CZ II, Slovak leagues), market values are driven by reputation, agent relationships, and past narratives — NOT by objective statistical output. This creates a systematic and exploitable market inefficiency.</p>
+        </div>
+        <p style="font-size:12px;color:#374151;line-height:1.8;margin-top:10px">
+          Tony Bloom's Brighton demonstrated that by rigorously quantifying player output and comparing it against what the market charges, a club can consistently acquire talent at a fraction of its true value.
+          The approach requires <strong>ignoring reputation</strong>, <strong>ignoring league prestige bias</strong>, and <strong>trusting the numbers</strong> when they conflict with conventional wisdom.
+          <br><br>
+          Our model applies this to the Czech and Slovak football pyramid — where a 25-year-old at Tatran Prešov producing 87th-percentile attacking output but valued at €125,000 represents exactly the kind of edge Brighton exploited in the Championship and League One.
+        </p>
+      </div>
+    </div>
+
+    <div class="method-grid" style="margin-bottom:14px">
+      <div class="method-block">
+        <h4>Statistical Quality Score (SQS)</h4>
+        <p>The SQS is a position-weighted composite of Wyscout per-90 metrics, normalised to a 0–100 percentile scale within each position group and recruitment league pool.</p>
+        <div class="formula-box">SQS = Σ (metric × weight) × league_difficulty_coefficient</div>
+        <p>Each position group has a bespoke weight matrix prioritising the metrics that most predict success at that position. A striker's SQS weights finishing and box presence heavily; a DM's SQS weights defensive actions and ball progression.</p>
+
+        <table class="weight-table">
+          <thead><tr><th>Position</th><th>Primary metrics</th><th>Key weights</th></tr></thead>
+          <tbody>
+            <tr><td><strong>GK</strong></td><td>Save rate, Prevented goals</td><td>×3.5, ×3.0</td></tr>
+            <tr><td><strong>CB</strong></td><td>Def duels won%, Aerial%, Interceptions</td><td>×3.0, ×2.5, ×2.5</td></tr>
+            <tr><td><strong>FB</strong></td><td>Prog runs, xA, Def duels</td><td>×2.5, ×2.5, ×2.0</td></tr>
+            <tr><td><strong>DM</strong></td><td>Interceptions, Def duels, Prog passes</td><td>×3.0, ×2.5, ×2.0</td></tr>
+            <tr><td><strong>CM</strong></td><td>Prog passes, Key passes, xG+xA</td><td>×2.5, ×2.5, ×2.0</td></tr>
+            <tr><td><strong>W</strong></td><td>Goals, xG, Dribbles, Box touches</td><td>×3.5, ×3.0, ×2.0</td></tr>
+            <tr><td><strong>FW</strong></td><td>Goals, xG, Box touches, Aerial%</td><td>×3.5, ×3.0, ×2.5</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="method-block">
+        <h4>Bloom Index (BI)</h4>
+        <p>The Bloom Index quantifies the gap between a player's statistical output rank and their market price rank. It is the core "edge" metric.</p>
+        <div class="formula-box">BI = SQS Percentile Rank − Market Value Percentile Rank</div>
+        <p>Range: −100 to +100. A positive BI means the player's statistical output exceeds their price in the market — they are <strong>underpriced</strong>. A negative BI means the market overcharges relative to output.</p>
+
+        <div style="margin-top:10px">
+          <div class="threshold-row">
+            <span class="t-badge" style="background:#D1FAE5;color:#065F46">ELITE VALUE ≥30</span>
+            <span class="t-def">Priced ≥30 percentile ranks below statistical output. Strong buy signal.</span>
+          </div>
+          <div class="threshold-row">
+            <span class="t-badge" style="background:#DCFCE7;color:#166534">HIGH VALUE ≥20</span>
+            <span class="t-def">Significant undervaluation. High priority for scouting visit.</span>
+          </div>
+          <div class="threshold-row">
+            <span class="t-badge" style="background:#DBEAFE;color:#1E40AF">VALUE ≥10</span>
+            <span class="t-def">Moderate undervaluation. Worth monitoring and assessing further.</span>
+          </div>
+          <div class="threshold-row">
+            <span class="t-badge" style="background:#F3F4F6;color:#6B7280">FAIR PRICE 0–9</span>
+            <span class="t-def">Priced in line with statistical output. No clear edge.</span>
+          </div>
+          <div class="threshold-row">
+            <span class="t-badge" style="background:#FEE2E2;color:#991B1B">OVERVALUED &lt;0</span>
+            <span class="t-def">Market overcharges relative to output. Avoid unless non-statistical value.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="method-grid" style="margin-bottom:14px">
+      <div class="method-block">
+        <h4>League Difficulty Adjustment</h4>
+        <p>Stats produced in stronger leagues count more. A goal in CZ II is harder to score than in Slovakia II, so we apply difficulty multipliers before computing SQS.</p>
+        <table class="weight-table">
+          <thead><tr><th>League</th><th>Coefficient</th><th>Rationale</th></tr></thead>
+          <tbody>
+            <tr><td><strong>CZ II</strong></td><td style="color:var(--blue);font-weight:700">×0.82</td><td>Second tier Czech, professional standard</td></tr>
+            <tr><td><strong>Slovakia</strong></td><td style="color:var(--blue);font-weight:700">×0.78</td><td>Slovak top flight, competitive but lower</td></tr>
+            <tr><td><strong>Slovakia II</strong></td><td style="color:var(--blue);font-weight:700">×0.68</td><td>Second tier Slovak, lowest difficulty</td></tr>
+          </tbody>
+        </table>
+        <div class="callout" style="margin-top:10px">
+          <p>This means a player in CZ II with a raw SQS of 80 is ranked higher than a Slovak II player with the same raw score — correctly reflecting the harder environment.</p>
+        </div>
+      </div>
+
+      <div class="method-block">
+        <h4>XGBoost Model Value</h4>
+        <p>We train an XGBoost regressor to predict market value from age, position, league, minutes played, and SQS components. This gives an independent estimate of what each player <em>should</em> cost.</p>
+        <div class="formula-box">Value Ratio = Model Value ÷ Market Value</div>
+        <p><strong>5-fold out-of-fold (OOF) cross-validation</strong> ensures the model never predicts on data it trained on — preventing in-sample inflation that would make all players look undervalued. OOF R² = 0.07–0.18, which is typical for football valuation models.</p>
+        <p style="margin-top:8px">A value ratio &gt;2.0 alongside a positive Bloom Index is the strongest compound signal — the statistical model AND the market rank both agree the player is underpriced.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-hdr"><h3>vs Hradec Gap — Upgrade Quantification</h3></div>
+      <div class="section-body">
+        <p style="font-size:12px;color:#374151;line-height:1.8">
+          The <strong>vs Hradec gap</strong> answers the question: <em>"By how much does this candidate exceed our current starters?"</em>
+          We take the two Hradec players with the most minutes at each position (from Impect tracking data), average their quality percentile score,
+          and subtract it from the candidate's SQS rank. A gap of <strong>+25</strong> means the candidate is at the 25th percentile better than the current starter — a meaningful, quantified upgrade.
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px">
+          <div style="background:#D1FAE5;border-radius:6px;padding:10px 14px">
+            <div style="font-size:11px;font-weight:800;color:#065F46">CLEAR UPGRADE</div>
+            <div style="font-size:11px;color:#374151;margin-top:4px">SQS gap ≥ +10 above current starter average. Immediate first-team improvement.</div>
+          </div>
+          <div style="background:#FEF3C7;border-radius:6px;padding:10px 14px">
+            <div style="font-size:11px;font-weight:800;color:#92400E">ROTATIONAL / COVER</div>
+            <div style="font-size:11px;color:#374151;margin-top:4px">Near-equivalent quality. Provides competition and depth without clear step up.</div>
+          </div>
+          <div style="background:#F3F4F6;border-radius:6px;padding:10px 14px">
+            <div style="font-size:11px;font-weight:800;color:#6B7280">DEPTH</div>
+            <div style="font-size:11px;color:#374151;margin-top:4px">Below current starter level. Squad depth only. Rarely recommended under budget constraint.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ VALUE MAP -->
+  <div class="sheet-panel" id="sheet-valuemap">
+    <div class="doc-title">
+      <div><h2>Value Map</h2><div class="doc-sub">SQS Rank vs Market Value — visualising the opportunity zone</div></div>
+      <div class="doc-meta"><div><strong>Total candidates:</strong> __TOTAL__</div><div><strong>Opportunity zone:</strong> High SQS · Low price</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:3fr 1fr;gap:14px;margin-bottom:14px">
+      <div class="chart-card" style="position:relative">
+        <h4>SQS Rank vs Market Value — bubble size = minutes played &middot; colour = position</h4>
+        <canvas id="vmScatter" height="360"></canvas>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="chart-card">
+          <h4>Bloom Value Tiers</h4>
+          <canvas id="vmDonut" height="160"></canvas>
+        </div>
+        <div class="chart-card">
+          <h4>Beeswarm — BI by Position</h4>
+          <svg id="vmBeeswarm" height="200" style="width:100%;overflow:visible"></svg>
+        </div>
+      </div>
+    </div>
+    <div class="charts-3">
+      <div class="chart-card">
+        <h4>Waffle — Tier breakdown (each square ≈ 5 players)</h4>
+        <div id="vmWaffle" style="display:flex;flex-wrap:wrap;gap:3px"></div>
+        <div id="vmWaffleLeg" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:10px"></div>
+      </div>
+      <div class="chart-card">
+        <h4>Age distribution — All candidates</h4>
+        <canvas id="vmAge" height="160"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4>League vs Bloom Index</h4>
+        <canvas id="vmLeagueBI" height="160"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ CLEAR UPGRADES -->
+  <div class="sheet-panel" id="sheet-upgrades">
+    <div class="doc-title">
+      <div><h2>Clear Upgrades</h2><div class="doc-sub">All candidates assessed as a clear statistical upgrade on current Hradec starters</div></div>
+      <div class="doc-meta" id="upgrades-meta"></div>
+    </div>
+    <div class="filter-row">
+      <label>Position:</label>
+      <select class="filter-sel" id="upgPos">
+        <option value="">All</option>
+        <option>GK</option><option>CB</option><option>FB</option><option>DM</option>
+        <option>CM</option><option>W</option><option>FW</option>
+      </select>
+      <label>Tier:</label>
+      <select class="filter-sel" id="upgTier">
+        <option value="">All</option><option value="ELITE">Elite Value</option>
+        <option value="HIGH">High Value</option><option value="VALUE">Value</option>
+      </select>
+      <label>Max Age:</label>
+      <select class="filter-sel" id="upgAge">
+        <option value="">Any</option><option value="23">≤ 23</option>
+        <option value="25">≤ 25</option><option value="27">≤ 27</option><option value="30">≤ 30</option>
+      </select>
+      <label>Max Value:</label>
+      <select class="filter-sel" id="upgMV">
+        <option value="">Any</option><option value="100000">≤ €100k</option>
+        <option value="250000">≤ €250k</option><option value="500000">≤ €500k</option>
+        <option value="1000000">≤ €1M</option>
+      </select>
+      <label>Expiring:</label>
+      <select class="filter-sel" id="upgExp">
+        <option value="">Any</option><option value="2026">2026 only ✦</option>
+      </select>
+      <span class="filter-count" id="upgCount"></span>
+    </div>
+    <div class="section">
+      <div class="section-body no-pad">
+        <table id="upgradesTable" style="width:100%">
+          <thead><tr>
+            <th>#</th><th>Player</th><th>Pos</th><th>Team</th><th>League</th>
+            <th>Age</th><th>Contract</th><th>Mkt Val</th><th>Model Val</th>
+            <th>SQS Rank</th><th>Bloom BI</th><th>Tier</th><th>vs Hradec</th>
+            <th>Mins</th><th>G/90</th><th>xG/90</th><th>A/90</th><th>PP/90</th><th>DD%</th><th>Int/90</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ ALL TARGETS -->
+  <div class="sheet-panel" id="sheet-all">
+    <div class="doc-title">
+      <div><h2>All Targets</h2><div class="doc-sub">Complete candidate database — all __TOTAL__ players meeting minimum criteria (900+ mins, age ≤30, budget ≤€1M)</div></div>
+    </div>
+    <div class="filter-row">
+      <label>Position:</label>
+      <select class="filter-sel" id="allPos">
+        <option value="">All</option><option>GK</option><option>CB</option><option>FB</option>
+        <option>DM</option><option>CM</option><option>W</option><option>FW</option>
+      </select>
+      <label>Tier:</label>
+      <select class="filter-sel" id="allTier">
+        <option value="">All</option><option value="ELITE">Elite Value</option>
+        <option value="HIGH">High Value</option><option value="VALUE">Value</option>
+        <option value="FAIR">Fair</option><option value="OVER">Overvalued</option>
+      </select>
+      <label>Status:</label>
+      <select class="filter-sel" id="allUpg">
+        <option value="">All</option><option value="CLEAR UPGRADE">Clear Upgrade</option>
+        <option value="ROTATIONAL / COVER">Rotational</option><option value="DEPTH">Depth</option>
+      </select>
+      <span class="filter-count" id="allCount"></span>
+    </div>
+    <div class="section">
+      <div class="section-body no-pad">
+        <table id="allTable" style="width:100%">
+          <thead><tr>
+            <th>#</th><th>Player</th><th>Pos</th><th>Team</th><th>League</th>
+            <th>Age</th><th>Contract</th><th>Mkt Val</th><th>SQS</th><th>Bloom</th>
+            <th>Tier</th><th>Status</th><th>vs HK</th><th>G/90</th><th>xG/90</th><th>A/90</th><th>PP/90</th><th>DD%</th><th>Int/90</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ PLAYER PROFILE -->
+  <div class="sheet-panel" id="sheet-profile">
+    <div class="doc-title">
+      <div><h2>Player Profile</h2><div class="doc-sub">Individual scouting report — search any candidate for full statistical breakdown</div></div>
+    </div>
+    <div style="position:relative;margin-bottom:16px">
+      <input class="search-box-wb" id="profileSearch" type="text" placeholder="Search player by name…" autocomplete="off">
+      <div class="ac-dd" id="profileAC" style="display:none"></div>
+    </div>
+    <div id="profile-empty" style="text-align:center;padding:60px;color:var(--grey)">
+      <div style="font-size:48px;margin-bottom:12px">🔍</div>
+      <div style="font-size:15px;font-weight:700;color:#374151">Search for a player to view their full profile</div>
+      <div style="font-size:12px;margin-top:5px">Pizza plot · percentile breakdown · Jamestown scout report</div>
+    </div>
+    <div id="profile-content" style="display:none">
+      <div class="player-card" id="profileCard"></div>
+      <div class="scout-layout">
+        <div class="chart-card">
+          <h4 id="pizza-title">Position profile</h4>
+          <svg id="pizzaSvg" viewBox="0 0 500 500" style="max-width:480px;width:100%;display:block;margin:0 auto"></svg>
+          <div class="pizza-legend" id="pizzaLegend"></div>
+        </div>
+        <div>
+          <div class="section" style="margin-bottom:14px">
+            <div class="section-hdr"><h3>Metrics vs Position Peers</h3><span class="sh-sub">Percentile within recruitment pool</span></div>
+            <div class="section-body" id="metricsPanel"></div>
+          </div>
+          <div class="section">
+            <div class="section-hdr"><h3>Jamestown Scout Report</h3></div>
+            <div class="section-body" id="scoutReport" style="font-size:12px;line-height:1.8;color:#374151"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ BY POSITION -->
+  <div class="sheet-panel" id="sheet-position">
+    <div class="doc-title">
+      <div><h2>Position Analysis</h2><div class="doc-sub">Deep-dive by position — top candidates, value tiers, age profile</div></div>
+    </div>
+    <div class="pos-pills" id="pos-pills"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <div class="chart-card"><h4 id="pos-bar-title">Top 20 by Bloom Index</h4><canvas id="posBar" height="320"></canvas></div>
+      <div class="chart-card"><h4 id="pos-scatter-title">SQS vs Market Value</h4><canvas id="posScatter" height="320"></canvas></div>
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;margin-bottom:14px">
+      <div class="section">
+        <div class="section-hdr"><h3 id="pos-table-title">Top Candidates</h3></div>
+        <div class="section-body no-pad">
+          <table class="xl-table" id="posTable">
+            <thead><tr><th>#</th><th>Player</th><th>Team</th><th>Lg</th><th>Age</th><th>Mkt Val</th><th>SQS</th><th>BI</th><th>vs HK</th><th>Status</th><th>Tier</th></tr></thead>
+            <tbody id="posTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="chart-card"><h4 id="pos-age-title">Age distribution</h4><canvas id="posAge" height="200"></canvas></div>
+      <div class="chart-card"><h4 id="pos-tier-title">Value tiers</h4><canvas id="posTier" height="200"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ SQUAD -->
+  <div class="sheet-panel" id="sheet-squad">
+    <div class="doc-title">
+      <div><h2>Squad Baseline — FC Hradec Králové</h2><div class="doc-sub">Current squad quality by position · Impect quality percentile · Basis for vs Hradec gap calculation</div></div>
+    </div>
+    <div class="section">
+      <div class="section-hdr"><h3>Squad Overview</h3><span class="sh-sub">Impect quality score mapped to 0–100 scale</span></div>
+      <div class="section-body">
+        <div class="squad-grid" id="squadGrid"></div>
+        <div style="font-size:11px;color:var(--grey);margin-top:8px">
+          <strong>Quality colour:</strong>
+          <span style="color:#166534;font-weight:700">■ ≥70th</span> Elite &nbsp;
+          <span style="color:#92400E;font-weight:700">■ ≥40th</span> Average &nbsp;
+          <span style="color:#991B1B;font-weight:700">■ &lt;40th</span> Below average
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-hdr"><h3>Position Coverage Gap Analysis</h3><span class="sh-sub">Where Hradec needs reinforcement most</span></div>
+      <div class="section-body">
+        <div id="gapAnalysis"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /sheet-area -->
+
+<!-- BOTTOM TAB BAR -->
+<div class="tab-bar">
+  <div class="sheet-tab active" data-sheet="summary"><span style="font-size:12px">📋</span> Summary</div>
+  <div class="sheet-tab" data-sheet="methodology"><span style="font-size:12px">📐</span> Methodology</div>
+  <div class="sheet-tab" data-sheet="valuemap"><span style="font-size:12px">🗺</span> Value Map</div>
+  <div class="sheet-tab" data-sheet="upgrades"><span style="font-size:12px">▲</span> Clear Upgrades</div>
+  <div class="sheet-tab" data-sheet="all"><span style="font-size:12px">📊</span> All Targets</div>
+  <div class="sheet-tab" data-sheet="profile"><span style="font-size:12px">🔍</span> Player Profile</div>
+  <div class="sheet-tab" data-sheet="position"><span style="font-size:12px">📍</span> By Position</div>
+  <div class="sheet-tab" data-sheet="squad"><span style="font-size:12px">👥</span> Squad Baseline</div>
+</div>
+
+<div id="tt"></div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script>
+const DATA      = __DATA_JSON__;
+const TIER_CNT  = __TIER_JSON__;
+const POS_CNT   = __POS_JSON__;
+const PIZZA_META= __PIZZA_JSON__;
+
+const TC={ELITE:"#1E8449",HIGH:"#27AE60",VALUE:"#1A56DB",FAIR:"#888",OVER:"#C0392B"};
+const TL={ELITE:"Elite Value",HIGH:"High Value",VALUE:"Value",FAIR:"Fair Price",OVER:"Overvalued"};
+const CC={att:"#1E8449",def:"#1A56DB",pass:"#D4700A",gk:"#7C3AED"};
+const CL={att:"Attacking",def:"Defending",pass:"Progression",gk:"Goalkeeping"};
+const POS=["GK","CB","FB","DM","CM","W","FW"];
+
+// ── helpers ────────────────────────────────────────────────────────────────
+const tt=document.getElementById("tt");
+function showTT(h,e){tt.innerHTML=h;tt.style.display="block";tt.style.left=(e.clientX+14)+"px";tt.style.top=(e.clientY-14)+"px";}
+document.addEventListener("mousemove",e=>{if(tt.style.display==="block"){tt.style.left=(e.clientX+14)+"px";tt.style.top=(e.clientY-14)+"px";}});
+function fmv(v){return v>0?"€"+v.toLocaleString():"—"}
+function fbi(v){return (v>0?"+":"")+v}
+function sqsc(v){return v>=70?"#166534":v>=40?"#92400E":"#991B1B"}
+function bic(v){return v>=20?"#166534":v>=10?"#1A56DB":v>=0?"#92400E":"#991B1B"}
+function inits(n){return n.split(" ").slice(0,2).map(w=>w[0]||"").join("").toUpperCase()}
+
+function tierCell(t){
+  const l={ELITE:"Elite Value",HIGH:"High Value",VALUE:"Value",FAIR:"Fair Price",OVER:"Overvalued"};
+  const c={ELITE:"cell-elite",HIGH:"cell-high",VALUE:"cell-value",FAIR:"cell-fair",OVER:"cell-over"};
+  return `<span class="${c[t]||"cell-fair"}" style="padding:2px 6px;border-radius:4px;font-size:10px;white-space:nowrap">${l[t]||t}</span>`;
+}
+function upgCell(u){
+  if(u==="CLEAR UPGRADE") return `<span class="cell-upgr" style="padding:2px 6px;border-radius:4px;font-size:10px">▲ Clear</span>`;
+  if(u.startsWith("ROT"))  return `<span class="cell-rot"  style="padding:2px 6px;border-radius:4px;font-size:10px">Rotational</span>`;
+  return `<span class="cell-depth" style="padding:2px 6px;border-radius:4px;font-size:10px">Depth</span>`;
+}
+function pbar(pct,col){
+  return `<div class="pbar-wrap"><div class="pbar-track"><div class="pbar-fill" style="width:${pct}%;background:${col}"></div></div><span class="pbar-val" style="color:${col}">${Math.round(pct)}</span></div>`;
+}
+
+// ── Tab navigation ─────────────────────────────────────────────────────────
+document.querySelectorAll(".sheet-tab").forEach(tab=>{
+  tab.addEventListener("click",()=>{
+    document.querySelectorAll(".sheet-tab").forEach(t=>t.classList.remove("active"));
+    document.querySelectorAll(".sheet-panel").forEach(p=>p.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("sheet-"+tab.dataset.sheet).classList.add("active");
+    if(tab.dataset.sheet==="position") renderPos(activePosTab);
+  });
+});
+
+// ── CSV export ─────────────────────────────────────────────────────────────
+function exportCSV(){
+  const cols=["name","team","league","pos","age","contract","mv","sqs","bi","tier","upgrade","gap","mins","g90","xg90","a90","pp90","ddw","int90"];
+  const hdr=cols.join(",");
+  const rows=DATA.map(d=>cols.map(c=>{
+    const v=d[c]!==undefined?d[c]:"";
+    return typeof v==="string"&&v.includes(",") ? `"${v}"` : v;
+  }).join(","));
+  const blob=new Blob([hdr+"\n"+rows.join("\n")],{type:"text/csv"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="hradec_recruitment_2526.csv"; a.click();
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// SUMMARY SHEET
+// ══════════════════════════════════════════════════════════════════════════
+const upgrades=DATA.filter(d=>d.upgrade==="CLEAR UPGRADE");
+const elites=DATA.filter(d=>d.tier==="ELITE");
+const eliteUpgrades=DATA.filter(d=>d.tier==="ELITE"&&d.upgrade==="CLEAR UPGRADE");
+const exp2026=DATA.filter(d=>d.cflag==="2026");
+
+document.getElementById("summary-findings").innerHTML=`
+  <div class="finding green">
+    <div class="f-num">${elites.length}</div>
+    <div class="f-lbl">Elite Value picks</div>
+    <div class="f-desc">BI ≥ 30 — statistically underpriced by 30+ percentile ranks vs market</div>
+  </div>
+  <div class="finding blue">
+    <div class="f-num">${upgrades.length}</div>
+    <div class="f-lbl">Clear Upgrades</div>
+    <div class="f-desc">SQS rank ≥ 10 above current Hradec starter average at position</div>
+  </div>
+  <div class="finding amber">
+    <div class="f-num">${DATA.filter(d=>d.age<=23).length}</div>
+    <div class="f-lbl">Players ≤ 23</div>
+    <div class="f-desc">High-upside youth pool — long-term value potential with sell-on fee</div>
+  </div>
+  <div class="finding red">
+    <div class="f-num">${exp2026.length}</div>
+    <div class="f-lbl">Expiring 2026 ✦</div>
+    <div class="f-desc">Contract expiring this summer — potential cut-price or free acquisitions</div>
+  </div>`;
+
+// Summary table (top 15 clear upgrade + elite)
+const top15=DATA.filter(d=>d.upgrade==="CLEAR UPGRADE").sort((a,b)=>b.bi-a.bi).slice(0,15);
+document.getElementById("summaryBody").innerHTML=top15.map((d,i)=>`<tr>
+  <td class="cell-grey">${i+1}</td>
+  <td><strong>${d.name}</strong></td>
+  <td class="cell-blue">${d.pos}</td>
+  <td>${d.team}</td><td>${d.league}</td>
+  <td class="${d.age<=23?"cell-green":""}"><strong>${d.age}</strong></td>
+  <td>${d.contract}${d.cflag==="2026"?'<span class="cflag"> ✦</span>':""}</td>
+  <td>${fmv(d.mv)}</td>
+  <td>${pbar(d.sqs,sqsc(d.sqs))}</td>
+  <td class="${d.bi>=20?"cell-green":d.bi>=10?"cell-blue":""}"><strong>${fbi(d.bi)}</strong></td>
+  <td class="${d.gap>0?"cell-green":"cell-red"}">${fbi(d.gap)}</td>
+  <td>${tierCell(d.tier)}</td>
+</tr>`).join("");
+
+// Budget viz
+const eliteU=DATA.filter(d=>d.tier==="ELITE"&&d.upgrade==="CLEAR UPGRADE").sort((a,b)=>a.mv-b.mv);
+let budViz="<div style='font-size:11px;color:var(--grey);margin-bottom:6px'>Elite Value clear upgrades that fit budget (lowest cost first):</div>";
+let cumBudget=0;
+eliteU.slice(0,8).forEach(d=>{
+  const w=Math.min(100,(d.mv/1000000)*100);
+  cumBudget+=d.mv;
+  const over=cumBudget>1000000;
+  budViz+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:11px">
+    <span style="min-width:120px;font-weight:600;${over?"color:#991B1B":""}">${d.name}</span>
+    <div style="flex:1;height:12px;background:#E5E7EB;border-radius:3px;overflow:hidden">
+      <div style="width:${w}%;height:100%;background:${over?"#C0392B":"#1E8449"};border-radius:3px"></div>
+    </div>
+    <span style="min-width:70px;font-weight:700;${over?"color:#991B1B":"color:#166534"}">${fmv(d.mv)}</span>
+  </div>`;
+});
+document.getElementById("budgetViz").innerHTML=budViz;
+
+// Summary charts
+const quadrantPlugin={
+  id:"qp",
+  beforeDraw(c){
+    const{ctx,chartArea:{left,right,top,bottom},scales:{x,y}}=c;
+    const medMV=d3.median(DATA.map(d=>d.mv/1000));
+    const medSQS=d3.median(DATA.map(d=>d.sqs));
+    const mx=x.getPixelForValue(medMV),my=y.getPixelForValue(medSQS);
+    ctx.save();
+    ctx.fillStyle="rgba(30,132,73,0.05)";ctx.fillRect(left,top,mx-left,my-top);
+    ctx.strokeStyle="rgba(150,150,150,0.25)";ctx.setLineDash([4,4]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(mx,top);ctx.lineTo(mx,bottom);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(left,my);ctx.lineTo(right,my);ctx.stroke();
+    ctx.restore();
+  }
+};
+
+function makeBubbleDS(dataSet){
+  return POS.map((p,i)=>({
+    label:p,
+    data:dataSet.filter(d=>d.pos===p).map(d=>({x:d.mv/1000,y:d.sqs,r:Math.max(2,Math.min(10,d.mins/300)),_d:d})),
+    backgroundColor:`hsla(${[210,180,150,100,240,30,0][i]},65%,45%,0.55)`,
+    borderColor:`hsla(${[210,180,150,100,240,30,0][i]},65%,35%,0.8)`,borderWidth:1
+  }));
+}
+
+const sumScatter=new Chart(document.getElementById("sumScatter").getContext("2d"),{
+  type:"bubble",data:{datasets:makeBubbleDS(DATA)},plugins:[quadrantPlugin],
+  options:{responsive:true,plugins:{legend:{position:"top",labels:{boxWidth:8,font:{size:9}}},tooltip:{enabled:false}},
+    scales:{x:{title:{display:true,text:"Market Value (€k)",font:{size:10}},grid:{color:"#F9FAFB"},min:0},
+            y:{title:{display:true,text:"SQS Rank",font:{size:10}},min:0,max:100,grid:{color:"#F9FAFB"}}},
+    onHover:(e,els)=>{
+      if(!els.length){tt.style.display="none";return;}
+      const d=sumScatter.data.datasets[els[0].datasetIndex].data[els[0].index]._d;
+      showTT(`<h4>${d.name}</h4><div class="tt-r"><span class="tt-l">Team</span><span class="tt-v">${d.team}</span></div>
+        <div class="tt-r"><span class="tt-l">SQS/BI</span><span class="tt-v">${d.sqs}/${fbi(d.bi)}</span></div>
+        <div class="tt-r"><span class="tt-l">Value</span><span class="tt-v">${fmv(d.mv)}</span></div>`,e.native);
+    }
+  }
+});
+
+new Chart(document.getElementById("sumDonut").getContext("2d"),{
+  type:"doughnut",
+  data:{labels:["ELITE","HIGH","VALUE","FAIR","OVER"].map(t=>TL[t]),
+    datasets:[{data:["ELITE","HIGH","VALUE","FAIR","OVER"].map(t=>TIER_CNT[t]),
+      backgroundColor:["ELITE","HIGH","VALUE","FAIR","OVER"].map(t=>TC[t]),borderWidth:2,borderColor:"#fff"}]},
+  options:{cutout:"60%",responsive:true,plugins:{legend:{position:"bottom",labels:{boxWidth:9,font:{size:9}}}}}
+});
+
+new Chart(document.getElementById("sumPos").getContext("2d"),{
+  type:"bar",data:{labels:POS,datasets:[{data:POS.map(p=>POS_CNT[p]||0),
+    backgroundColor:POS.map((_,i)=>`hsla(${[210,180,150,100,240,30,0][i]},60%,50%,0.75)`),borderRadius:4}]},
+  options:{indexAxis:"y",responsive:true,plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:"#F9FAFB"}},y:{grid:{display:false},ticks:{font:{size:10,weight:"700"}}}}}
+});
+
+const lc={};DATA.forEach(d=>{lc[d.league]=(lc[d.league]||0)+1});
+new Chart(document.getElementById("sumLeague").getContext("2d"),{
+  type:"doughnut",
+  data:{labels:Object.keys(lc),datasets:[{data:Object.values(lc),
+    backgroundColor:{"CZ II":"#1A56DB","Slovakia":"#1E8449","Slovakia II":"#D4700A"},borderWidth:2,borderColor:"#fff"}]},
+  options:{cutout:"58%",responsive:true,plugins:{legend:{position:"bottom",labels:{boxWidth:9,font:{size:9}}}}}
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// VALUE MAP SHEET
+// ══════════════════════════════════════════════════════════════════════════
+const vmScatter=new Chart(document.getElementById("vmScatter").getContext("2d"),{
+  type:"bubble",data:{datasets:makeBubbleDS(DATA)},plugins:[quadrantPlugin],
+  options:{responsive:true,plugins:{legend:{position:"top",labels:{boxWidth:9,font:{size:10}}},tooltip:{enabled:false}},
+    scales:{x:{title:{display:true,text:"Market Value (€k)",font:{size:10}},grid:{color:"#F9FAFB"},min:0},
+            y:{title:{display:true,text:"SQS Rank (0–100)",font:{size:10}},min:0,max:100,grid:{color:"#F9FAFB"}}},
+    onHover:(e,els)=>{
+      if(!els.length){tt.style.display="none";return;}
+      const d=vmScatter.data.datasets[els[0].datasetIndex].data[els[0].index]._d;
+      showTT(`<h4>${d.name}</h4><div class="tt-r"><span class="tt-l">SQS/BI</span><span class="tt-v">${d.sqs}/${fbi(d.bi)}</span></div>
+        <div class="tt-r"><span class="tt-l">Value</span><span class="tt-v">${fmv(d.mv)}</span></div>
+        <div class="tt-r"><span class="tt-l">Status</span><span class="tt-v">${d.upgrade}</span></div>`,e.native);
+    }
+  }
+});
+
+new Chart(document.getElementById("vmDonut").getContext("2d"),{
+  type:"doughnut",
+  data:{labels:["ELITE","HIGH","VALUE","FAIR","OVER"].map(t=>TL[t]),
+    datasets:[{data:["ELITE","HIGH","VALUE","FAIR","OVER"].map(t=>TIER_CNT[t]),
+      backgroundColor:["ELITE","HIGH","VALUE","FAIR","OVER"].map(t=>TC[t]),borderWidth:2,borderColor:"#fff"}]},
+  options:{cutout:"58%",responsive:true,plugins:{legend:{position:"bottom",labels:{boxWidth:9,font:{size:9}}}}}
+});
+
+// Beeswarm (value map)
+function drawBS(svgId){
+  const svgEl=document.getElementById(svgId);
+  const W=svgEl.getBoundingClientRect().width||400,H=200;
+  const svg=d3.select(svgEl).attr("viewBox",`0 0 ${W} ${H}`);svg.selectAll("*").remove();
+  const M={l:36,r:6,t:4,b:22};const iW=W-M.l-M.r,iH=H-M.t-M.b;
+  const g=svg.append("g").attr("transform",`translate(${M.l},${M.t})`);
+  const lH=iH/POS.length,xSc=d3.scaleLinear().domain([-35,85]).range([0,iW]);
+  POS.forEach((p,i)=>{if(i%2===0)g.append("rect").attr("x",0).attr("y",i*lH).attr("width",iW).attr("height",lH).attr("fill","#F9FAFB");});
+  g.append("g").attr("transform",`translate(0,${iH})`).call(d3.axisBottom(xSc).ticks(5).tickFormat(d=>(d>0?"+":"")+d).tickSize(-iH)).selectAll("line").attr("stroke","#F1F5F9");
+  g.select(".domain").remove();
+  g.append("line").attr("x1",xSc(0)).attr("x2",xSc(0)).attr("y1",0).attr("y2",iH).attr("stroke","#CBD5E0").attr("stroke-dasharray","3,3").attr("stroke-width",1);
+  POS.forEach(p=>{g.append("text").attr("x",-3).attr("y",POS.indexOf(p)*lH+lH/2).attr("text-anchor","end").attr("dy","0.35em").attr("font-size",9).attr("font-weight","700").attr("fill","#374151").text(p);});
+  const nodes=DATA.map(d=>({...d,x:xSc(Math.max(-35,Math.min(85,d.bi))),y:POS.indexOf(d.pos)*lH+lH/2}));
+  const sim=d3.forceSimulation(nodes).force("x",d3.forceX(n=>xSc(Math.max(-35,Math.min(85,n.bi)))).strength(0.9)).force("y",d3.forceY(n=>POS.indexOf(n.pos)*lH+lH/2).strength(4)).force("collide",d3.forceCollide(2.8)).stop();
+  for(let i=0;i<180;i++)sim.tick();
+  g.selectAll("circle").data(nodes).join("circle").attr("cx",n=>Math.max(2,Math.min(iW-2,n.x))).attr("cy",n=>Math.max(2,Math.min(iH-2,n.y))).attr("r",n=>n.tier==="ELITE"?3.8:2.8).attr("fill",n=>TC[n.tier]||"#888").attr("opacity",0.7).attr("stroke",n=>n.upgrade==="CLEAR UPGRADE"?"#fff":"none").attr("stroke-width",0.8)
+    .on("mouseover",function(e,n){d3.select(this).attr("r",5);showTT(`<h4>${n.name}</h4><div class="tt-r"><span class="tt-l">BI</span><span class="tt-v">${fbi(n.bi)}</span></div><div class="tt-r"><span class="tt-l">SQS</span><span class="tt-v">${n.sqs}</span></div>`,e);})
+    .on("mouseout",function(e,n){d3.select(this).attr("r",n.tier==="ELITE"?3.8:2.8);tt.style.display="none";});
+}
+drawBS("vmBeeswarm");
+
+// Waffle (value map)
+(function(){
+  const total=DATA.length,cells=100,sq=[];
+  ["ELITE","HIGH","VALUE","FAIR","OVER"].forEach(t=>{const n=Math.round((TIER_CNT[t]/total)*cells);for(let i=0;i<n;i++)sq.push(t);});
+  while(sq.length<cells)sq.push("FAIR");
+  const waf=document.getElementById("vmWaffle");
+  sq.forEach(t=>{const d=document.createElement("div");d.style.cssText=`width:14px;height:14px;border-radius:2px;background:${TC[t]};opacity:.85;cursor:default;display:inline-block;margin:1px`;d.title=TL[t];waf.appendChild(d);});
+  const leg=document.getElementById("vmWaffleLeg");
+  ["ELITE","HIGH","VALUE","FAIR","OVER"].forEach(t=>{
+    leg.innerHTML+=`<span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:${TC[t]};display:inline-block"></span>${TL[t]}: <strong>${TIER_CNT[t]}</strong></span>`;
+  });
+})();
+
+// Age distribution
+const ages={};DATA.forEach(d=>{ages[d.age]=(ages[d.age]||0)+1;});
+const ageKeys=Object.keys(ages).sort((a,b)=>+a-+b);
+new Chart(document.getElementById("vmAge").getContext("2d"),{
+  type:"bar",data:{labels:ageKeys,datasets:[{data:ageKeys.map(k=>ages[k]),
+    backgroundColor:ageKeys.map(k=>+k<=23?"#1E844988":+k<=27?"#1A56DB88":"#D4700A88"),borderRadius:3}]},
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:9}}},y:{grid:{color:"#F9FAFB"}}}}
+});
+
+// League BI grouped bar
+const leagues=["CZ II","Slovakia","Slovakia II"];
+const leagueBI={};
+leagues.forEach(l=>{const ld=DATA.filter(d=>d.league===l);leagueBI[l]={elite:ld.filter(d=>d.tier==="ELITE").length,upg:ld.filter(d=>d.upgrade==="CLEAR UPGRADE").length,avg:ld.length?+(ld.reduce((s,d)=>s+d.bi,0)/ld.length).toFixed(1):0};});
+new Chart(document.getElementById("vmLeagueBI").getContext("2d"),{
+  type:"bar",data:{labels:leagues,datasets:[
+    {label:"Elite picks",data:leagues.map(l=>leagueBI[l].elite),backgroundColor:"#1E8449AA",borderRadius:3},
+    {label:"Clear upgrades",data:leagues.map(l=>leagueBI[l].upg),backgroundColor:"#1A56DBAA",borderRadius:3},
+  ]},
+  options:{responsive:true,plugins:{legend:{position:"top",labels:{boxWidth:9,font:{size:9}}}},
+    scales:{x:{grid:{display:false}},y:{grid:{color:"#F9FAFB"}}}}
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// CLEAR UPGRADES + ALL TARGETS (DataTables)
+// ══════════════════════════════════════════════════════════════════════════
+function mkRow(d,i){
+  return [
+    i+1,
+    `<strong>${d.name}</strong><small style="display:block;color:#9CA3AF;font-size:10px">${d.position}</small>`,
+    `<strong style="color:var(--blue)">${d.pos}</strong>`,
+    d.team,d.league,
+    d.age<=23?`<strong style="color:#166534">${d.age}</strong>`:d.age,
+    d.contract+(d.cflag==="2026"?'<span class="cflag"> ✦</span>':""),
+    fmv(d.mv),fmv(d.model_v),
+    pbar(d.sqs,sqsc(d.sqs)),
+    `<strong style="color:${bic(d.bi)}">${fbi(d.bi)}</strong>`,
+    tierCell(d.tier),
+    `<strong style="color:${d.gap>0?"#166534":"#991B1B"}">${fbi(d.gap)}</strong>`,
+    d.mins.toLocaleString(),
+    d.g90,d.xg90,d.a90,d.pp90,d.ddw+"%",d.int90
+  ];
+}
+function mkRowShort(d,i){
+  return [
+    i+1,
+    `<strong>${d.name}</strong><small style="display:block;color:#9CA3AF;font-size:10px">${d.position}</small>`,
+    `<strong style="color:var(--blue)">${d.pos}</strong>`,
+    d.team,d.league,
+    d.age<=23?`<strong style="color:#166534">${d.age}</strong>`:d.age,
+    d.contract+(d.cflag==="2026"?'<span class="cflag"> ✦</span>':""),
+    fmv(d.mv),
+    pbar(d.sqs,sqsc(d.sqs)),
+    `<strong style="color:${bic(d.bi)}">${fbi(d.bi)}</strong>`,
+    tierCell(d.tier),upgCell(d.upgrade),
+    `<strong style="color:${d.gap>0?"#166534":"#991B1B"}">${fbi(d.gap)}</strong>`,
+    d.g90,d.xg90,d.a90,d.pp90,d.ddw+"%",d.int90
+  ];
+}
+
+let upgDT=null,allDT=null;
+function buildUpgrades(){
+  const pos=document.getElementById("upgPos").value;
+  const tier=document.getElementById("upgTier").value;
+  const age=document.getElementById("upgAge").value;
+  const mv=document.getElementById("upgMV").value;
+  const exp=document.getElementById("upgExp").value;
+  let d=DATA.filter(dd=>dd.upgrade==="CLEAR UPGRADE");
+  if(pos)  d=d.filter(dd=>dd.pos===pos);
+  if(tier) d=d.filter(dd=>dd.tier===tier);
+  if(age)  d=d.filter(dd=>dd.age<=+age);
+  if(mv)   d=d.filter(dd=>dd.mv<=+mv);
+  if(exp)  d=d.filter(dd=>dd.cflag===exp);
+  d=d.sort((a,b)=>b.bi-a.bi);
+  document.getElementById("upgCount").textContent=d.length+" players";
+  if(!upgDT){
+    upgDT=$("#upgradesTable").DataTable({data:d.map(mkRow),pageLength:25,lengthMenu:[25,50,100],
+      columnDefs:[{targets:[1,9,11],orderable:false}],language:{search:"Search:"},
+      drawCallback:function(){document.getElementById("upgCount").textContent=this.api().rows({filter:"applied"}).count()+" players";}
+    });
+  } else { upgDT.clear();upgDT.rows.add(d.map(mkRow));upgDT.draw(); }
+  document.getElementById("upgrades-meta").innerHTML=
+    `<div><strong>Clear Upgrades:</strong> ${upgrades.length} total</div>
+     <div><strong>Elite Value:</strong> ${eliteUpgrades.length} picks</div>
+     <div><strong>Expiring 2026:</strong> ${upgrades.filter(d=>d.cflag==="2026").length} players ✦</div>`;
+}
+["upgPos","upgTier","upgAge","upgMV","upgExp"].forEach(id=>document.getElementById(id).addEventListener("change",buildUpgrades));
+buildUpgrades();
+
+function buildAll(){
+  const pos=document.getElementById("allPos").value;
+  const tier=document.getElementById("allTier").value;
+  const upg=document.getElementById("allUpg").value;
+  let d=[...DATA];
+  if(pos)  d=d.filter(dd=>dd.pos===pos);
+  if(tier) d=d.filter(dd=>dd.tier===tier);
+  if(upg)  d=d.filter(dd=>dd.upgrade===upg);
+  d=d.sort((a,b)=>b.bi-a.bi);
+  document.getElementById("allCount").textContent=d.length+" players";
+  if(!allDT){
+    allDT=$("#allTable").DataTable({data:d.map(mkRowShort),pageLength:25,lengthMenu:[25,50,100,551],
+      columnDefs:[{targets:[1,9,10,11],orderable:false}],language:{search:"Search:"},
+      drawCallback:function(){document.getElementById("allCount").textContent=this.api().rows({filter:"applied"}).count()+" players";}
+    });
+  } else { allDT.clear();allDT.rows.add(d.map(mkRowShort));allDT.draw(); }
+}
+["allPos","allTier","allUpg"].forEach(id=>document.getElementById(id).addEventListener("change",buildAll));
+buildAll();
+
+// ══════════════════════════════════════════════════════════════════════════
+// PIZZA + PROFILE SHEET
+// ══════════════════════════════════════════════════════════════════════════
+function arcPath(cx,cy,r1,r2,a1,a2){
+  const x1=cx+r1*Math.cos(a1),y1=cy+r1*Math.sin(a1);
+  const x2=cx+r2*Math.cos(a1),y2=cy+r2*Math.sin(a1);
+  const x3=cx+r2*Math.cos(a2),y3=cy+r2*Math.sin(a2);
+  const x4=cx+r1*Math.cos(a2),y4=cy+r1*Math.sin(a2);
+  const big=(a2-a1)>Math.PI?1:0;
+  return `M${x1},${y1}L${x2},${y2}A${r2},${r2},0,${big},1,${x3},${y3}L${x4},${y4}A${r1},${r1},0,${big},0,${x1},${y1}Z`;
+}
+function drawPizza(svgId,player){
+  const metrics=PIZZA_META[player.pos]||[];if(!metrics.length)return;
+  const svg=d3.select("#"+svgId);svg.selectAll("*").remove();
+  const cx=250,cy=250,iR=40,oR=178,lR=200,n=metrics.length,step=(2*Math.PI)/n,start=-Math.PI/2;
+  svg.append("rect").attr("width",500).attr("height",500).attr("fill","#F8FAFC").attr("rx",10);
+  [25,50,75].forEach(p=>{const r=iR+(oR-iR)*(p/100);svg.append("circle").attr("cx",cx).attr("cy",cy).attr("r",r).attr("fill","none").attr("stroke","#D1D5DB").attr("stroke-width",.6).attr("stroke-dasharray","2,4");});
+  svg.append("circle").attr("cx",cx).attr("cy",cy).attr("r",oR).attr("fill","none").attr("stroke","#E5E7EB").attr("stroke-width",1);
+  metrics.forEach((_,i)=>{const a1=start+i*step,a2=start+(i+1)*step;svg.append("path").attr("d",arcPath(cx,cy,iR,oR,a1,a2)).attr("fill",i%2===0?"#EEF2FF":"#E8EDF6").attr("stroke","#fff").attr("stroke-width",2);});
+  metrics.forEach((m,i)=>{
+    const a1=start+i*step,a2=start+(i+1)*step,midA=(a1+a2)/2;
+    const pct=parseFloat(player[m.key+"_pct"])||0,col=CC[m.cat]||"#1A56DB";
+    const fillR=iR+(oR-iR)*(pct/100);
+    if(fillR>iR+2){
+      const mid2=iR+(fillR-iR)*.55;
+      svg.append("path").attr("d",arcPath(cx,cy,mid2,fillR,a1,a2)).attr("fill",col).attr("opacity",.92).attr("stroke","#fff").attr("stroke-width",1.5);
+      svg.append("path").attr("d",arcPath(cx,cy,iR,mid2,a1,a2)).attr("fill",col).attr("opacity",.45).attr("stroke","#fff").attr("stroke-width",1.5);
+    }
+    if(pct>18&&fillR-iR>16){const lr2=iR+(fillR-iR)*.6;svg.append("text").attr("x",cx+lr2*Math.cos(midA)).attr("y",cy+lr2*Math.sin(midA)).attr("text-anchor","middle").attr("dy","0.35em").attr("font-size",8).attr("font-weight","800").attr("fill","#fff").text(Math.round(pct));}
+    const lx=cx+lR*Math.cos(midA),ly=cy+lR*Math.sin(midA);
+    const anc=Math.abs(Math.cos(midA))<.15?"middle":Math.cos(midA)<0?"end":"start";
+    svg.append("line").attr("x1",cx+(oR+1)*Math.cos(midA)).attr("y1",cy+(oR+1)*Math.sin(midA)).attr("x2",cx+(oR+9)*Math.cos(midA)).attr("y2",cy+(oR+9)*Math.sin(midA)).attr("stroke",col).attr("stroke-width",1.5).attr("opacity",.7);
+    svg.append("text").attr("x",lx).attr("y",ly-5).attr("text-anchor",anc).attr("font-size",9).attr("font-weight","600").attr("fill","#374151").text(m.label);
+    svg.append("text").attr("x",lx).attr("y",ly+7).attr("text-anchor",anc).attr("font-size",8.5).attr("font-weight","800").attr("fill",col).text(Math.round(pct)+"th");
+  });
+  svg.append("circle").attr("cx",cx).attr("cy",cy).attr("r",iR).attr("fill","#fff").attr("stroke","#E5E7EB").attr("stroke-width",2);
+  const ln=player.name.split(" ").slice(-1)[0].substring(0,9);
+  svg.append("text").attr("x",cx).attr("y",cy-12).attr("text-anchor","middle").attr("font-size",10).attr("font-weight","900").attr("fill","#111").text(ln);
+  svg.append("text").attr("x",cx).attr("y",cy+2).attr("text-anchor","middle").attr("font-size",8).attr("fill","#6B7280").text(player.pos);
+  svg.append("text").attr("x",cx).attr("y",cy+15).attr("text-anchor","middle").attr("font-size",9).attr("font-weight","800").attr("fill","#1A56DB").text(Math.round(player.sqs)+" SQS");
+  document.getElementById("pizza-title").textContent=`${player.name} — ${player.pos} profile vs peers`;
+  const cats=[...new Set(metrics.map(m=>m.cat))];
+  document.getElementById("pizzaLegend").innerHTML=cats.map(c=>`<div class="pl-item"><div class="pl-dot" style="background:${CC[c]}"></div>${CL[c]}</div>`).join("");
+}
+
+function renderProfile(d){
+  document.getElementById("profile-empty").style.display="none";
+  document.getElementById("profile-content").style.display="block";
+  const biC=bic(d.bi),vr=d.model_v>0?(d.model_v/Math.max(d.mv,1)).toFixed(1)+"×":"n/a";
+  document.getElementById("profileCard").innerHTML=`
+    <div class="pc-top">
+      <div class="pc-avatar">${inits(d.name)}</div>
+      <div>
+        <div class="pc-name">${d.name}${d.cflag==="2026"?'<span style="font-size:13px;margin-left:8px;color:#FCD34D">✦</span>':""}</div>
+        <div class="pc-meta">${d.pos} · ${d.position} · ${d.team} · ${d.league} · Age ${d.age} · ${fmv(d.mv)} · ${d.mins.toLocaleString()} mins</div>
+      </div>
+    </div>
+    <div class="pc-stats">
+      <div class="pc-stat"><div class="s-n">${d.sqs}</div><div class="s-l">SQS Rank</div></div>
+      <div class="pc-stat"><div class="s-n" style="color:${biC}">${fbi(d.bi)}</div><div class="s-l">Bloom Index</div></div>
+      <div class="pc-stat"><div class="s-n">${fmv(d.mv)}</div><div class="s-l">Market Value</div></div>
+      <div class="pc-stat"><div class="s-n">${fmv(d.model_v)}</div><div class="s-l">Model Value</div></div>
+      <div class="pc-stat"><div class="s-n">${vr}</div><div class="s-l">Value Ratio</div></div>
+      <div class="pc-stat"><div class="s-n" style="color:${d.gap>0?"#86EFAC":"#FCA5A5"}">${fbi(d.gap)}</div><div class="s-l">vs Hradec</div></div>
+    </div>`;
+  drawPizza("pizzaSvg",d);
+  const mets=PIZZA_META[d.pos]||[];
+  document.getElementById("metricsPanel").innerHTML=mets.map(m=>{
+    const pct=parseFloat(d[m.key+"_pct"])||0,raw=d[m.key]!==undefined?d[m.key]:"—";
+    const col=pct>=70?"#166534":pct>=40?"#92400E":"#991B1B";
+    return `<div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid #F9FAFB;gap:8px">
+      <span style="font-size:11px;color:#374151;flex:1">${m.label}</span>
+      <div style="width:90px;height:5px;background:#E5E7EB;border-radius:3px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${col};border-radius:3px"></div></div>
+      <span style="font-size:11px;font-weight:700;color:${col};min-width:28px;text-align:right">${Math.round(pct)}<sup style="font-size:8px">th</sup></span>
+      <span style="font-size:10px;color:#9CA3AF;min-width:26px;text-align:right">${raw}</span>
+    </div>`;
+  }).join("");
+  const uLbl=d.upgrade==="CLEAR UPGRADE"?"a <strong>clear upgrade</strong>":d.upgrade.startsWith("ROT")?"a <strong>rotational option</strong>":"a <strong>depth option</strong>";
+  const cn=d.cflag==="2026"?` Contract expires <strong>June 2026</strong> — potential free or cut-price acquisition.`:"";
+  document.getElementById("scoutReport").innerHTML=`
+    <p><strong>${d.name}</strong> operates as ${d.position} for <strong>${d.team}</strong> in the ${d.league}.
+    The Jamestown model rates this player <strong>${TL[d.tier]}</strong> with a Bloom Index of
+    <strong style="color:${biC}">${fbi(d.bi)}</strong> — statistical output is
+    <strong>${d.bi>0?"underpriced":"overpriced"}</strong> relative to the market.</p>
+    <p style="margin-top:8px">Represents ${uLbl} on current Hradec ${d.pos} starters
+    (<em>${d.starters}</em>), SQS gap: <strong>${fbi(d.gap)}</strong>.${cn}
+    Market value <strong>${fmv(d.mv)}</strong> vs model estimate <strong>${fmv(d.model_v)}</strong> (${vr}).</p>`;
+}
+
+function setupAC(inputId,acId,onSel){
+  const inp=document.getElementById(inputId),ac=document.getElementById(acId);
+  inp.addEventListener("input",function(){
+    const q=this.value.toLowerCase().trim();ac.innerHTML="";
+    if(q.length<2){ac.style.display="none";return;}
+    const hits=DATA.filter(d=>d.name.toLowerCase().includes(q)).slice(0,12);
+    if(!hits.length){ac.style.display="none";return;}
+    hits.forEach(d=>{const item=document.createElement("div");item.className="ac-item";
+      item.innerHTML=`<div class="ac-name">${d.name}</div><div class="ac-meta">${d.pos}·${d.team}·${d.league}·BI ${fbi(d.bi)}·${fmv(d.mv)}</div>`;
+      item.addEventListener("click",()=>{inp.value=d.name;ac.style.display="none";onSel(d);});ac.appendChild(item);});
+    ac.style.display="block";
+  });
+  document.addEventListener("click",e=>{if(!e.target.closest("#"+inputId)&&!e.target.closest("#"+acId))ac.style.display="none";});
+}
+setupAC("profileSearch","profileAC",renderProfile);
+
+// ══════════════════════════════════════════════════════════════════════════
+// POSITION SHEET
+// ══════════════════════════════════════════════════════════════════════════
+let activePosTab="W",posCharts={};
+const pillsEl=document.getElementById("pos-pills");
+POS.forEach(p=>{const b=document.createElement("button");b.className="pos-pill"+(p==="W"?" active":"");b.dataset.pos=p;b.textContent=p;b.addEventListener("click",()=>renderPos(p));pillsEl.appendChild(b);});
+
+function renderPos(pos){
+  activePosTab=pos;
+  document.querySelectorAll(".pos-pill").forEach(b=>b.classList.toggle("active",b.dataset.pos===pos));
+  ["posBar","posScatter","posAge","posTier"].forEach(id=>{if(posCharts[id]){posCharts[id].destroy();delete posCharts[id];}});
+  const pd=DATA.filter(d=>d.pos===pos),top20=pd.sort((a,b)=>b.bi-a.bi).slice(0,20);
+  document.getElementById("pos-bar-title").textContent=`${pos} — Top 20 by Bloom Index`;
+  document.getElementById("pos-scatter-title").textContent=`${pos} — SQS vs Market Value`;
+  document.getElementById("pos-table-title").textContent=`${pos} — Top Candidates`;
+  document.getElementById("pos-age-title").textContent=`${pos} — Age distribution`;
+  document.getElementById("pos-tier-title").textContent=`${pos} — Value tiers`;
+
+  // Position table
+  document.getElementById("posTableBody").innerHTML=top20.map((d,i)=>`<tr>
+    <td class="cell-grey">${i+1}</td><td><strong>${d.name}</strong><small style="display:block;color:#9CA3AF;font-size:9px">${d.team}</small></td>
+    <td>${d.team}</td><td style="color:#9CA3AF;font-size:10px">${d.league}</td>
+    <td class="${d.age<=23?"cell-green":""}">${d.age}</td>
+    <td>${fmv(d.mv)}</td>
+    <td>${pbar(d.sqs,sqsc(d.sqs))}</td>
+    <td class="${d.bi>=20?"cell-green":d.bi>=10?"cell-blue":""}"><strong>${fbi(d.bi)}</strong></td>
+    <td class="${d.gap>0?"cell-green":"cell-red"}">${fbi(d.gap)}</td>
+    <td>${upgCell(d.upgrade)}</td><td>${tierCell(d.tier)}</td>
+  </tr>`).join("");
+
+  posCharts.posBar=new Chart(document.getElementById("posBar").getContext("2d"),{
+    type:"bar",data:{labels:top20.map(d=>d.name.split(" ").slice(-1)[0].substring(0,11)),
+      datasets:[{data:top20.map(d=>d.bi),
+        backgroundColor:top20.map(d=>d.bi>=20?"#1E8449CC":d.bi>=10?"#1A56DBCC":d.bi>=0?"#D4700ACC":"#C0392BCC"),
+        borderRadius:4}]},
+    options:{indexAxis:"y",responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const d=top20[ctx.dataIndex];return [`BI: ${fbi(d.bi)}`,`SQS: ${d.sqs}`,fmv(d.mv),d.upgrade];}}}},
+      scales:{x:{grid:{color:"#F9FAFB"},title:{display:true,text:"Bloom Index",font:{size:9}}},y:{grid:{display:false},ticks:{font:{size:9}}}}}
+  });
+  const tDS=["ELITE","HIGH","VALUE","FAIR","OVER"].map(t=>({
+    label:TL[t],data:pd.filter(d=>d.tier===t).map(d=>({x:d.mv/1000,y:d.sqs,r:Math.max(2,Math.min(9,d.mins/300)),_d:d})),
+    backgroundColor:TC[t]+"88",borderColor:TC[t],borderWidth:1
+  }));
+  posCharts.posScatter=new Chart(document.getElementById("posScatter").getContext("2d"),{
+    type:"bubble",data:{datasets:tDS},
+    options:{responsive:true,plugins:{legend:{position:"top",labels:{boxWidth:8,font:{size:9}}},tooltip:{callbacks:{label:ctx=>{const d=ctx.raw._d;return [`${d.name}`,`SQS ${d.sqs} BI ${fbi(d.bi)}`,fmv(d.mv)];} }}},
+      scales:{x:{grid:{color:"#F9FAFB"},title:{display:true,text:"Mkt Val (€k)",font:{size:9}},min:0},y:{min:0,max:100,grid:{color:"#F9FAFB"},title:{display:true,text:"SQS",font:{size:9}}}}}
+  });
+  const ageC={};pd.forEach(d=>{ageC[d.age]=(ageC[d.age]||0)+1;});const ak=Object.keys(ageC).sort((a,b)=>+a-+b);
+  posCharts.posAge=new Chart(document.getElementById("posAge").getContext("2d"),{
+    type:"bar",data:{labels:ak,datasets:[{data:ak.map(k=>ageC[k]),backgroundColor:ak.map(k=>+k<=23?"#1E844988":+k<=27?"#1A56DB88":"#D4700A88"),borderRadius:3}]},
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:9}}},y:{grid:{color:"#F9FAFB"}}}}
+  });
+  const ptC={};pd.forEach(d=>{ptC[d.tier]=(ptC[d.tier]||0)+1;});const tK=["ELITE","HIGH","VALUE","FAIR","OVER"].filter(t=>ptC[t]>0);
+  posCharts.posTier=new Chart(document.getElementById("posTier").getContext("2d"),{
+    type:"doughnut",data:{labels:tK.map(t=>TL[t]),datasets:[{data:tK.map(t=>ptC[t]),backgroundColor:tK.map(t=>TC[t]),borderWidth:2,borderColor:"#fff"}]},
+    options:{cutout:"55%",responsive:true,plugins:{legend:{position:"bottom",labels:{boxWidth:9,font:{size:9}}}}}
+  });
+}
+renderPos("W");
+
+// ══════════════════════════════════════════════════════════════════════════
+// SQUAD SHEET
+// ══════════════════════════════════════════════════════════════════════════
+const squadByPos={};
+POS.forEach(p=>{squadByPos[p]=[];});
+
+// Build synthetic squad from "starters" field in DATA
+const seenStarters=new Set();
+DATA.forEach(d=>{
+  if(!d.starters||d.starters==="nan") return;
+  const pos=d.pos;
+  d.starters.split("/").map(s=>s.trim()).forEach(name=>{
+    if(name&&!seenStarters.has(pos+"_"+name)&&name!=="—"){
+      seenStarters.add(pos+"_"+name);
+      if(!squadByPos[pos]) squadByPos[pos]=[];
+      if(!squadByPos[pos].find(x=>x.name===name)){
+        squadByPos[pos].push({name,pos});
+      }
+    }
+  });
+});
+
+const squad=document.getElementById("squadGrid");
+squad.innerHTML=POS.map(pos=>`
+  <div class="squad-pos-col">
+    <h5>${pos}</h5>
+    ${(squadByPos[pos]||[]).map(p=>`
+      <div class="squad-player">
+        <div class="sp-name" title="${p.name}">${p.name}</div>
+        <div class="sp-q" style="color:var(--grey)">Starter</div>
+      </div>`).join("")}
+    ${!(squadByPos[pos]||[]).length?`<div class="squad-player"><div class="sp-q cell-red">No data</div></div>`:""}
+  </div>`).join("");
+
+const gapData=POS.map(pos=>{
+  const clearUpgrades=DATA.filter(d=>d.pos===pos&&d.upgrade==="CLEAR UPGRADE").length;
+  const topBI=DATA.filter(d=>d.pos===pos).sort((a,b)=>b.bi-a.bi)[0];
+  return {pos,clearUpgrades,topBI};
+});
+
+document.getElementById("gapAnalysis").innerHTML=`
+  <table class="xl-table">
+    <thead><tr><th>Position</th><th>Clear Upgrades available</th><th>Best Bloom Index</th><th>Best candidate</th><th>Priority</th></tr></thead>
+    <tbody>${gapData.map(g=>{
+      const pri=g.clearUpgrades>=5?"🔴 High":g.clearUpgrades>=2?"🟡 Medium":"🟢 Low";
+      return `<tr>
+        <td class="cell-blue"><strong>${g.pos}</strong></td>
+        <td><strong>${g.clearUpgrades}</strong> candidates</td>
+        <td class="${g.topBI&&g.topBI.bi>=20?"cell-green":""}">${g.topBI?fbi(g.topBI.bi):"—"}</td>
+        <td>${g.topBI?`<strong>${g.topBI.name}</strong> (${g.topBI.team})`:"—"}</td>
+        <td>${pri}</td>
+      </tr>`;
+    }).join("")}</tbody>
+  </table>`;
+</script>
+</body>
+</html>
